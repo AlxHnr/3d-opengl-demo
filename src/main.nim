@@ -71,7 +71,8 @@ proc main(): bool =
         running = false
 
     # Update state.
-    transformBuffer.setTo(scale(0.25) & rotateZ(0.5 * PI))
+    let zoomFactor = sin(sdl2.getTicks().float/200.0)/20.0 + 0.5;
+    transformBuffer.setTo(scale(zoomFactor) & rotateZ(sdl2.getTicks().float/1000.0))
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT)
