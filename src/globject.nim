@@ -45,8 +45,7 @@ proc destroy*(vao: VertexArrayObject) =
   var vaoVar = vao.GLuint
   glDeleteVertexArrays(1, vaoVar.addr)
 
-template withVertexArrayObject*(vao: VertexArrayObject,
-                                body: untyped): typed =
+template withVertexArrayObject*(vao: VertexArrayObject, body: untyped) =
   glBindVertexArray(vao.GLuint)
   try:
     body

@@ -51,8 +51,6 @@ proc main(): bool =
     loadShaderProgram("shader/simple.vert", "shader/simple.frag")
   defer: shaderProgram.destroy()
 
-  shaderProgram.use()
-
   # Main loop.
   var
     running = true
@@ -71,8 +69,9 @@ proc main(): bool =
     # Render.
     glClear(GL_COLOR_BUFFER_BIT)
 
-    withVertexArrayObject vao:
-      glDrawArrays(GL_TRIANGLES, 0, 3)
+    withShaderProgram shaderProgram:
+      withVertexArrayObject vao:
+        glDrawArrays(GL_TRIANGLES, 0, 3)
 
     glSwapWindow(window)
 

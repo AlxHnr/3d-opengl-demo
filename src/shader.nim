@@ -87,8 +87,12 @@ proc loadShaderProgram*(vertexPath: string,
 proc destroy*(program: ShaderProgram) =
   glDeleteProgram(program.GLuint)
 
-proc use*(program: ShaderProgram) =
+template withShaderProgram*(program: ShaderProgram, body: untyped) =
   glUseProgram(program.GLuint)
+  try:
+    body
+  finally:
+    glUseProgram(0)
 
 proc getUniformLocation*(program: ShaderProgram, name: string): GLint =
   result = glGetUniformLocation(program.GLuint, name)
