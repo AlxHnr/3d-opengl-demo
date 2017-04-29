@@ -1,14 +1,8 @@
-import opengl
+import opengl, mathhelpers
 
 type
   ArrayBuffer = distinct GLuint
   VertexArrayObject = distinct GLuint
-
-proc toFloat32Seq(a: varargs[float]): seq[float32] =
-  var a32 = newSeq[float32](a.len)
-  for i, v in a:
-    a32[i] = v
-  a32
 
 proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
   var arrayBuffer: GLuint
@@ -16,10 +10,10 @@ proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
   result = arrayBuffer.ArrayBuffer
 
   try:
-    var vertices32 = vertices.toFloat32Seq()
+    var vertices32 = vertices.toGLfloatSeq()
     glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer)
     glBufferData(GL_ARRAY_BUFFER,
-                 vertices32.len * float32.sizeof,
+                 vertices32.len * GLfloat.sizeof,
                  vertices32[0].addr, GL_STATIC_DRAW)
     glBindBuffer(GL_ARRAY_BUFFER, 0)
   except:

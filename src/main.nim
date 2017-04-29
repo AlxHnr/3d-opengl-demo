@@ -1,4 +1,4 @@
-import sdl2, opengl, shader, globject
+import math, basic3d, sdl2, opengl, shader, globject, mathhelpers
 
 template sdlAssert(condition: bool) =
   if not condition:
@@ -33,9 +33,9 @@ proc main(): bool =
     glClearColor(0, 0, 0, 0)
 
   # Setup triangle.
-  let vertices = initArrayBuffer(0.0,  0.75,  0.0,
-                                -0.75, -0.75, 0.0,
-                                 0.75, -0.75, 0.0)
+  let vertices = initArrayBuffer(0.0,  1.0,  0.0,
+                                -1.0, -1.0,  0.0,
+                                 1.0, -1.0,  0.0)
   defer: vertices.destroy()
 
   let vao = initVertexArrayObject()
@@ -43,13 +43,17 @@ proc main(): bool =
 
   withVertexArrayObject vao:
     vertices.bindBuffer()
-    glVertexAttribPointer(0, 3, cGL_Float, false, 3 * GLfloat.sizeof, nil)
+    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
     glEnableVertexAttribArray(0);
 
   # Setup shaders.
   let shaderProgram =
     loadShaderProgram("shader/simple.vert", "shader/simple.frag")
   defer: shaderProgram.destroy()
+
+  # Setup transformation matrices.
+  let transformLocation = shaderProgram.getUniformLocation("transform")
+  var transformBuffer: mat4Buffer
 
   # Main loop.
   var
@@ -66,10 +70,14 @@ proc main(): bool =
            event.key.keysym.sym == K_ESCAPE):
         running = false
 
+    # Update state.
+    transformBuffer.setTo(scale(0.25) & rotateZ(0.5 * PI))
+
     # Render.
     glClear(GL_COLOR_BUFFER_BIT)
 
     withShaderProgram shaderProgram:
+      glUniformMatrix4fv(transformLocation, 1, GL_FALSE, transformBuffer[0].addr)
       withVertexArrayObject vao:
         glDrawArrays(GL_TRIANGLES, 0, 3)
 
