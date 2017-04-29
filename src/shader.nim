@@ -56,6 +56,8 @@ proc linkShaderProgram*(vertexShader: VertexShader,
     glAttachShader(program, vertexShader.GLuint)
     glAttachShader(program, fragmentShader.GLuint)
     glLinkProgram(program)
+    glDetachShader(program, vertexShader.GLuint)
+    glDetachShader(program, fragmentShader.GLuint)
 
     var programiv: GLint
     glGetProgramiv(program, GL_LINK_STATUS, programiv.addr)
