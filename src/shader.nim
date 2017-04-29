@@ -89,3 +89,9 @@ proc destroy*(program: ShaderProgram) =
 
 proc use*(program: ShaderProgram) =
   glUseProgram(program.GLuint)
+
+proc getUniformLocation*(program: ShaderProgram, name: string): GLint =
+  result = glGetUniformLocation(program.GLuint, name)
+  if result == -1:
+    let msg = "uniform location doesn't exist: \"" & name & "\""
+    raise newException(ShaderError, msg)
