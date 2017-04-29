@@ -4,10 +4,9 @@ type
   mat4Buffer* = array[4 * 4, GLfloat]
 
 proc toGLfloatSeq*(a: varargs[float]): seq[GLfloat] =
-  var a32 = newSeq[GLfloat](a.len)
+  result = newSeq[GLfloat](a.len)
   for i, v in a:
-    a32[i] = v
-  a32
+    result[i] = v
 
 proc setTo*(buffer: var mat4Buffer, matrix: Matrix3d) =
   buffer[0] = matrix.ax
