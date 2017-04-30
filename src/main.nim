@@ -33,18 +33,39 @@ proc main(): bool =
 
   glViewport(0, 0, windowW, windowH)
   glClearColor(0, 0, 0, 0)
+  glEnable(GL_DEPTH_TEST);
 
-  # Setup triangle.
-  let vertices = initArrayBuffer(0.0,  1.0,  -5.0,
-                                -1.0, -1.0,  -5.0,
-                                 1.0, -1.0,  -5.0)
+  # Setup vertices.
+  let vertices = initArrayBuffer(-1.0, -1.0,  1.0,
+                                  1.0, -1.0,  1.0,
+                                  1.0, -1.0, -1.0,
+                                 -1.0, -1.0, -1.0,
+                                 -1.0,  1.0,  1.0,
+                                  1.0,  1.0,  1.0,
+                                  1.0,  1.0, -1.0,
+                                 -1.0,  1.0, -1.0)
   defer: vertices.destroy()
+
+  let indicies = initElementBuffer(0, 1, 2,
+                                   0, 2, 3,
+                                   0, 1, 5,
+                                   0, 4, 5,
+                                   0, 3, 7,
+                                   0, 4, 7,
+                                   2, 1, 5,
+                                   2, 6, 5,
+                                   2, 3, 7,
+                                   2, 6, 7,
+                                   4, 5, 6,
+                                   4, 7, 6)
+  defer: indicies.destroy()
 
   let vao = initVertexArrayObject()
   defer: vao.destroy()
 
   withVertexArrayObject vao:
     vertices.bindBuffer()
+    indicies.bindBuffer()
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
     glEnableVertexAttribArray(0);
 
@@ -63,7 +84,7 @@ proc main(): bool =
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
 
   modelMatrix.setTo(IDMATRIX)
-  viewMatrix.setTo(IDMATRIX)
+  viewMatrix.setTo(move(0.0, 0.0, -5.0))
 
   # Main loop.
   var
@@ -91,17 +112,19 @@ proc main(): bool =
             discard nil
 
     # Update state.
-    modelMatrix.setTo(rotateZ(sdl2.getTicks().float/1000.0))
+    modelMatrix.setTo(rotate(sdl2.getTicks().float/1000.0,
+                             vector3d(0.5, 1.0, -1.0)) &
+                      move(0, 0, sin(sdl2.getTicks().float/1000.0) * 5 - 3))
 
     # Render.
-    glClear(GL_COLOR_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     withShaderProgram shaderProgram:
       glUniformMatrix4fv(modelLocation, 1, GL_FALSE, modelMatrix[0].addr)
       glUniformMatrix4fv(viewLocation, 1, GL_FALSE, viewMatrix[0].addr)
       glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, projectionMatrix[0].addr)
       withVertexArrayObject vao:
-        glDrawArrays(GL_TRIANGLES, 0, 3)
+        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nil)
 
     glSwapWindow(window)
 

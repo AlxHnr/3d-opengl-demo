@@ -8,6 +8,11 @@ proc toGLfloatSeq*(a: varargs[float]): seq[GLfloat] =
   for i, v in a:
     result[i] = v
 
+proc toGLuintSeq*(a: varargs[int]): seq[GLuint] =
+  result = newSeq[GLuint](a.len)
+  for i, v in a:
+    result[i] = v.GLuint
+
 proc setTo*(buffer: var Matrix4, matrix: Matrix3d) =
   buffer[0] = matrix.ax
   buffer[1] = matrix.ay

@@ -2,6 +2,7 @@ import opengl, mathhelpers
 
 type
   ArrayBuffer = distinct GLuint
+  ElementBuffer = distinct GLuint
   VertexArrayObject = distinct GLuint
 
 proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
@@ -20,15 +21,37 @@ proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
     glDeleteBuffers(1, arrayBuffer.addr)
     raise
 
-proc destroy*(buffer: ArrayBuffer) =
-  var bufferVar = buffer.GLuint
-  glDeleteBuffers(1, bufferVar.addr)
-
 proc bindBuffer*(buffer: ArrayBuffer) =
   glBindBuffer(GL_ARRAY_BUFFER, buffer.GLuint)
 
 proc unbindBuffer*(buffer: ArrayBuffer) =
   glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+proc initElementBuffer*(indicies: varargs[int]): ElementBuffer =
+  var buffer: GLuint
+  glGenBuffers(1, buffer.addr)
+  result = buffer.ElementBuffer
+
+  try:
+    var uindicies = indicies.toGLuintSeq()
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 uindicies.len * GLfloat.sizeof,
+                 uindicies[0].addr, GL_STATIC_DRAW)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+  except:
+    glDeleteBuffers(1, buffer.addr)
+    raise
+
+proc bindBuffer*(buffer: ElementBuffer) =
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.GLuint)
+
+proc unbindBuffer*(buffer: ElementBuffer) =
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+proc destroy*(buffer: ArrayBuffer|ElementBuffer) =
+  var bufferVar = buffer.GLuint
+  glDeleteBuffers(1, bufferVar.addr)
 
 proc initVertexArrayObject*(): VertexArrayObject =
   var vao: GLuint
