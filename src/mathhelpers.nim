@@ -31,7 +31,7 @@ proc setTo*(buffer: var Matrix4, matrix: Matrix3d) =
 
 proc perspectiveMatrix*(angle, ratio, near, far: float): Matrix4 =
   let
-    f = 1.0/tan(degToRad(angle)/2.0)
+    f = 1.0/tan(angle/2.0)
     nearMinusFar = near - far
 
   result[0] = f/ratio

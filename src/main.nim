@@ -60,7 +60,7 @@ proc main(): bool =
     projectionLocation = shaderProgram.getUniformLocation("projection")
   var
     modelMatrix, viewMatrix: Matrix4
-    projectionMatrix = perspectiveMatrix(45.0, windowW/windowH, 1.0, 100.0)
+    projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
 
   modelMatrix.setTo(IDMATRIX)
   viewMatrix.setTo(IDMATRIX)
@@ -91,9 +91,7 @@ proc main(): bool =
             discard nil
 
     # Update state.
-    let zoomFactor = sin(sdl2.getTicks().float/200.0) * 10 - 8;
-    modelMatrix.setTo(move(0, 0, zoomFactor) &
-                      rotateZ(sdl2.getTicks().float/1000.0))
+    modelMatrix.setTo(rotateZ(sdl2.getTicks().float/1000.0))
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT)
