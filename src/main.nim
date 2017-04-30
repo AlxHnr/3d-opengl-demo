@@ -53,11 +53,12 @@ proc main(): bool =
 
   # Setup transformation matrices.
   let transformLocation = shaderProgram.getUniformLocation("transform")
-  var transformBuffer: mat4Buffer
+  var transformBuffer: mat4Array
 
   # Main loop.
   var
     running = true
+    wireframe = false
     event = sdl2.defaultEvent
 
   while running:
@@ -65,14 +66,25 @@ proc main(): bool =
     while pollEvent(event):
       if event.kind == QuitEvent:
         running = false
-      elif event.kind == KeyDown and
-          (event.key.keysym.sym == K_q or
-           event.key.keysym.sym == K_ESCAPE):
-        running = false
+      elif event.kind == KeyDown:
+        case event.key.keysym.sym:
+          of K_q, K_ESCAPE:
+            running = false
+          of K_w:
+            if wireframe:
+              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            else:
+              glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            wireframe = not wireframe
+          else:
+            # Ignore most keys.
+            discard nil
 
     # Update state.
-    let zoomFactor = sin(sdl2.getTicks().float/200.0)/20.0 + 0.5;
-    transformBuffer.setTo(scale(zoomFactor) & rotateZ(sdl2.getTicks().float/1000.0))
+    let zoomFactor = sin(sdl2.getTicks().float/200.0)/2.0 + 0.5;
+    transformBuffer.setTo(scale(0.5) &
+                          move(0, 0, zoomFactor) &
+                          rotateZ(sdl2.getTicks().float/1000.0))
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT)

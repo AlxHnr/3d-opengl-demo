@@ -1,14 +1,14 @@
 import basic3d, opengl
 
 type
-  mat4Buffer* = array[4 * 4, GLfloat]
+  mat4Array* = array[4 * 4, GLfloat]
 
 proc toGLfloatSeq*(a: varargs[float]): seq[GLfloat] =
   result = newSeq[GLfloat](a.len)
   for i, v in a:
     result[i] = v
 
-proc setTo*(buffer: var mat4Buffer, matrix: Matrix3d) =
+proc setTo*(buffer: var mat4Array, matrix: Matrix3d) =
   buffer[0] = matrix.ax
   buffer[1] = matrix.ay
   buffer[2] = matrix.az
