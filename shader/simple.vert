@@ -6,10 +6,14 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-out vec3 coords;
+out vec3 localCoords, worldCoords;
 
 void main(void)
 {
-  gl_Position = projection * view * model * vec4(position, 1.0);
-  coords = position;
+  vec4 positionWorld = model * vec4(position, 1.0);
+
+  localCoords = position;
+  worldCoords = positionWorld.xyz;
+
+  gl_Position = projection * view * positionWorld;
 }

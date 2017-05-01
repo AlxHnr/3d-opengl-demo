@@ -82,9 +82,7 @@ proc main(): bool =
   var
     modelMatrix, viewMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-
-  modelMatrix.setTo(IDMATRIX)
-  viewMatrix.setTo(move(0.0, 0.0, -5.0))
+    camera = point3d(0.0, 20.0, 0.0)
 
   # Main loop.
   var
@@ -112,19 +110,25 @@ proc main(): bool =
             discard nil
 
     # Update state.
-    modelMatrix.setTo(rotate(sdl2.getTicks().float/1000.0,
-                             vector3d(0.5, 1.0, -1.0)) &
-                      move(0, 0, sin(sdl2.getTicks().float/1000.0) * 5 - 3))
+    let rotateMatrix = rotate(sdl2.getTicks().float/1000.0, XAXIS)
+    camera.x = sin(sdl2.getTicks().float/2000.0) * 35;
+    camera.z = cos(sdl2.getTicks().float/2000.0) * 35;
+    viewMatrix = lookAt(camera, ORIGO)
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     withShaderProgram shaderProgram:
-      glUniformMatrix4fv(modelLocation, 1, GL_FALSE, modelMatrix[0].addr)
       glUniformMatrix4fv(viewLocation, 1, GL_FALSE, viewMatrix[0].addr)
       glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, projectionMatrix[0].addr)
       withVertexArrayObject vao:
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nil)
+        for x in -5..4:
+          for y in -5..4:
+            for z in -5..4:
+              modelMatrix.setTo(rotateMatrix &
+                                move(x.float * 3, y.float * 3, z.float * 3))
+              glUniformMatrix4fv(modelLocation, 1, GL_FALSE, modelMatrix[0].addr)
+              glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nil)
 
     glSwapWindow(window)
 
