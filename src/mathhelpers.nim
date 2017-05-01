@@ -6,7 +6,7 @@ type
 proc toGLfloatSeq*(a: varargs[float]): seq[GLfloat] =
   result = newSeq[GLfloat](a.len)
   for i, v in a:
-    result[i] = v
+    result[i] = v.GLfloat
 
 proc toGLuintSeq*(a: varargs[int]): seq[GLuint] =
   result = newSeq[GLuint](a.len)

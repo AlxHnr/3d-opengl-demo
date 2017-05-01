@@ -5,53 +5,39 @@ type
   ElementBuffer = distinct GLuint
   VertexArrayObject = distinct GLuint
 
-proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
-  var arrayBuffer: GLuint
-  glGenBuffers(1, arrayBuffer.addr)
-  result = arrayBuffer.ArrayBuffer
+proc toGLenum(buffer: ArrayBuffer): GLenum = GL_ARRAY_BUFFER
+proc toGLenum(buffer: ElementBuffer): GLenum = GL_ELEMENT_ARRAY_BUFFER
+
+proc initBuffer(bufferType: GLenum,
+                values: seq[GLfloat] | seq[GLuint]): GLuint =
+  var values = values
+  glGenBuffers(1, result.addr)
 
   try:
-    var vertices32 = vertices.toGLfloatSeq()
-    glBindBuffer(GL_ARRAY_BUFFER, arrayBuffer)
-    glBufferData(GL_ARRAY_BUFFER,
-                 vertices32.len * GLfloat.sizeof,
-                 vertices32[0].addr, GL_STATIC_DRAW)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
+    glBindBuffer(bufferType, result)
+    glBufferData(bufferType,
+                 values.len * values[0].sizeof,
+                 values[0].addr, GL_STATIC_DRAW)
+    glBindBuffer(bufferType, 0)
   except:
-    glDeleteBuffers(1, arrayBuffer.addr)
+    glDeleteBuffers(1, result.addr)
     raise
 
-proc bindBuffer*(buffer: ArrayBuffer) =
-  glBindBuffer(GL_ARRAY_BUFFER, buffer.GLuint)
-
-proc unbindBuffer*(buffer: ArrayBuffer) =
-  glBindBuffer(GL_ARRAY_BUFFER, 0)
+proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
+  initBuffer(result.toGLenum, vertices.toGLfloatSeq).ArrayBuffer
 
 proc initElementBuffer*(indicies: varargs[int]): ElementBuffer =
-  var buffer: GLuint
-  glGenBuffers(1, buffer.addr)
-  result = buffer.ElementBuffer
+  initBuffer(result.toGLenum, indicies.toGLuintSeq).ElementBuffer
 
-  try:
-    var uindicies = indicies.toGLuintSeq()
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 uindicies.len * GLfloat.sizeof,
-                 uindicies[0].addr, GL_STATIC_DRAW)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-  except:
-    glDeleteBuffers(1, buffer.addr)
-    raise
+proc bindBuffer*(buffer: ArrayBuffer | ElementBuffer) =
+  glBindBuffer(buffer.toGLenum, buffer.GLuint)
 
-proc bindBuffer*(buffer: ElementBuffer) =
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.GLuint)
+proc unbindBuffer*(buffer: ArrayBuffer | ElementBuffer) =
+  glBindBuffer(buffer.toGLenum, 0)
 
-proc unbindBuffer*(buffer: ElementBuffer) =
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
-
-proc destroy*(buffer: ArrayBuffer|ElementBuffer) =
-  var bufferVar = buffer.GLuint
-  glDeleteBuffers(1, bufferVar.addr)
+proc destroy*(buffer: ArrayBuffer | ElementBuffer) =
+  var buffer = buffer.GLuint
+  glDeleteBuffers(1, buffer.addr)
 
 proc initVertexArrayObject*(): VertexArrayObject =
   var vao: GLuint
@@ -59,8 +45,8 @@ proc initVertexArrayObject*(): VertexArrayObject =
   vao.VertexArrayObject
 
 proc destroy*(vao: VertexArrayObject) =
-  var vaoVar = vao.GLuint
-  glDeleteVertexArrays(1, vaoVar.addr)
+  var vao = vao.GLuint
+  glDeleteVertexArrays(1, vao.addr)
 
 template withVertexArrayObject*(vao: VertexArrayObject, body: untyped) =
   glBindVertexArray(vao.GLuint)
