@@ -82,24 +82,40 @@ proc main(): bool =
   var
     modelMatrix, viewMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-    camera = point3d(0.0, 20.0, 0.0)
+    camera = vector3d(0.0, 0.0, -40.0)
+    cameraVector: Vector3d
+    yaw = -PI/2
+    pitch = 0.0
 
   # Main loop.
   var
     running = true
     wireframe = false
+    cameraMode = false
     event = sdl2.defaultEvent
+  let keys = sdl2.getKeyboardState()
 
   while running:
     # Handle events.
     while pollEvent(event):
       if event.kind == QuitEvent:
         running = false
+      elif event.kind == MouseButtonDown and
+           event.button.button == sdl2.BUTTON_RIGHT:
+        cameraMode = true
+      elif event.kind == MouseButtonUp and
+           event.button.button == sdl2.BUTTON_RIGHT:
+        cameraMode = false
+      elif event.kind == MouseMotion and cameraMode:
+        yaw += event.motion.xrel.float/200.0
+        pitch += event.motion.yrel.float/200.0
+        if pitch < -PI/2.1: pitch = -PI/2.1
+        elif pitch > PI/2.1: pitch = PI/2.1
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
           of K_q, K_ESCAPE:
             running = false
-          of K_w:
+          of K_g:
             if wireframe:
               glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             else:
@@ -109,11 +125,27 @@ proc main(): bool =
             # Ignore most keys.
             discard nil
 
+    if keys[SDL_SCANCODE_W.uint8] == 1:
+      camera -= cameraVector
+    elif keys[SDL_SCANCODE_S.uint8] == 1:
+      camera += cameraVector
+    if keys[SDL_SCANCODE_A.uint8] == 1:
+      var right = cross(YAXIS, cameraVector)
+      right.normalize()
+      camera -= right
+    elif keys[SDL_SCANCODE_D.uint8] == 1:
+      var right = cross(YAXIS, cameraVector)
+      right.normalize()
+      camera += right
+
     # Update state.
     let rotateMatrix = rotate(sdl2.getTicks().float/1000.0, XAXIS)
-    camera.x = sin(sdl2.getTicks().float/2000.0) * 35;
-    camera.z = cos(sdl2.getTicks().float/2000.0) * 35;
-    viewMatrix = lookAt(camera, ORIGO)
+
+    cameraVector.x = cos(yaw) * cos(pitch)
+    cameraVector.y = sin(pitch)
+    cameraVector.z = sin(yaw) * cos(pitch)
+    cameraVector.normalize()
+    viewMatrix = lookAt(camera, cameraVector)
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)

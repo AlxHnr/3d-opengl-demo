@@ -45,17 +45,14 @@ proc perspectiveMatrix*(fieldOfView, ratio, near, far: float): Matrix4 =
   result[11] = (2 * far * near)/nearMinusFar
   result[14] = -1.0
 
-proc lookAt*(camera, target: Point3d): Matrix4 =
-  var cameraVector = camera - target
-  cameraVector.normalize()
-
+proc lookAt*(camera, cameraVector: Vector3d): Matrix4 =
   var right = cross(YAXIS, cameraVector)
   right.normalize()
 
   var up = cross(cameraVector, right)
   up.normalize()
 
-  let cameraInverted = vector3d(-camera.x, -camera.y, -camera.z)
+  let cameraInverted = -camera
 
   result[0] = right.x
   result[1] = up.x
