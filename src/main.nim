@@ -191,7 +191,7 @@ proc main(): bool =
         for x in -5..4:
           for y in -5..4:
             for z in -5..4:
-              modelMatrix.setTo(
+              modelMatrix.setTo(rotateMatrix &
                                 move(x.float * 3, y.float * 3, z.float * 3))
               glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)

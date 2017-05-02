@@ -15,7 +15,7 @@ void main(void)
 
   localCoord = position;
   worldCoord = positionWorld.xyz;
-  normal = normalAttribute;
+  normal = normalize(mat3(transpose(inverse(model))) * normalAttribute);
 
   gl_Position = projection * view * positionWorld;
 }
