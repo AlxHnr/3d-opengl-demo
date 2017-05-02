@@ -1,12 +1,10 @@
 #version 330 core
 
-in vec3 localCoords, worldCoords;
-out vec4 color;
+uniform vec3 color;
+
+out vec4 colorOut;
 
 void main(void)
 {
-  vec4 localColor = vec4(localCoords/4, 1.0);
-  vec4 worldColor = vec4(worldCoords/15.0/2 + 0.5, 1.0);
-
-  color = worldColor - localColor;
+  colorOut = vec4(color, 1.0);
 }

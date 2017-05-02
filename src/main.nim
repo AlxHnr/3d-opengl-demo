@@ -36,53 +36,95 @@ proc main(): bool =
   glEnable(GL_DEPTH_TEST);
 
   # Setup vertices.
-  let vertices = initArrayBuffer(-1.0, -1.0,  1.0,
-                                  1.0, -1.0,  1.0,
-                                  1.0, -1.0, -1.0,
-                                 -1.0, -1.0, -1.0,
-                                 -1.0,  1.0,  1.0,
-                                  1.0,  1.0,  1.0,
-                                  1.0,  1.0, -1.0,
-                                 -1.0,  1.0, -1.0)
-  defer: vertices.destroy()
+  let cubeData =
+    [
+      -1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
+       1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
+       1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
+       1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
+      -1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
+      -1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
 
-  let indicies = initElementBuffer(0, 1, 2,
-                                   0, 2, 3,
-                                   0, 1, 5,
-                                   0, 4, 5,
-                                   0, 3, 7,
-                                   0, 4, 7,
-                                   2, 1, 5,
-                                   2, 6, 5,
-                                   2, 3, 7,
-                                   2, 6, 7,
-                                   4, 5, 6,
-                                   4, 7, 6)
-  defer: indicies.destroy()
+      -1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
+       1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
+       1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
+       1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
+      -1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
+      -1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
 
-  let vao = initVertexArrayObject()
-  defer: vao.destroy()
+      -1.0,  1.0,  1.0, -1.0,  0.0,  0.0,
+      -1.0,  1.0, -1.0, -1.0,  0.0,  0.0,
+      -1.0, -1.0, -1.0, -1.0,  0.0,  0.0,
+      -1.0, -1.0, -1.0, -1.0,  0.0,  0.0,
+      -1.0, -1.0,  1.0, -1.0,  0.0,  0.0,
+      -1.0,  1.0,  1.0, -1.0,  0.0,  0.0,
 
-  withVertexArrayObject vao:
-    vertices.bindBuffer()
-    indicies.bindBuffer()
-    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
+       1.0,  1.0,  1.0,  1.0,  0.0,  0.0,
+       1.0,  1.0, -1.0,  1.0,  0.0,  0.0,
+       1.0, -1.0, -1.0,  1.0,  0.0,  0.0,
+       1.0, -1.0, -1.0,  1.0,  0.0,  0.0,
+       1.0, -1.0,  1.0,  1.0,  0.0,  0.0,
+       1.0,  1.0,  1.0,  1.0,  0.0,  0.0,
+
+      -1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
+       1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
+       1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
+       1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
+      -1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
+      -1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
+
+      -1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
+       1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
+       1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
+       1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
+      -1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
+      -1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
+    ]
+  let cubeBuffer = initArrayBuffer(cubeData)
+  defer: cubeBuffer.destroy()
+
+  let cubeVao = initVertexArrayObject()
+  defer: cubeVao.destroy()
+  withVertexArrayObject cubeVao:
+    cubeBuffer.bindBuffer()
+
+    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof,
+                          cast[pointer](3 * GLfloat.sizeof))
+    glEnableVertexAttribArray(1);
+
+  let sunVao = initVertexArrayObject()
+  defer: sunVao.destroy()
+  withVertexArrayObject sunVao:
+    cubeBuffer.bindBuffer()
+    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
     glEnableVertexAttribArray(0);
 
   # Setup shaders.
-  let shaderProgram =
-    loadShaderProgram("shader/simple.vert", "shader/simple.frag")
-  defer: shaderProgram.destroy()
+  let simpleShader = loadShaderProgram("shader/simple.vert", "shader/simple.frag")
+  defer: simpleShader.destroy()
+
+  let lightShader = loadShaderProgram("shader/light.vert", "shader/light.frag")
+  defer: lightShader.destroy()
 
   # Setup transformation matrices.
   let
-    modelLocation = shaderProgram.getUniformLocation("model")
-    viewLocation = shaderProgram.getUniformLocation("view")
-    projectionLocation = shaderProgram.getUniformLocation("projection")
+    lightModelLoc = lightShader.getUniformLocation("model")
+    lightViewLoc = lightShader.getUniformLocation("view")
+    lightProjectionLoc = lightShader.getUniformLocation("projection")
+    lightSunColorLoc = lightShader.getUniformLocation("sunColor")
+    lightSunPositionLoc = lightShader.getUniformLocation("sunPosition")
+
+    simpleModelLoc = simpleShader.getUniformLocation("model")
+    simpleViewLoc = simpleShader.getUniformLocation("view")
+    simpleProjectionLoc = simpleShader.getUniformLocation("projection")
+    simpleColorLoc = simpleShader.getUniformLocation("color")
   var
-    modelMatrix: Matrix4
+    modelMatrix, sunMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
     camera = initCamera(0.0, 0.0, -40.0)
+    sunColor = [1.0.GLfloat, 1.0.GLfloat, 1.0.GLfloat]
 
   # Main loop.
   var
@@ -130,22 +172,38 @@ proc main(): bool =
       camera.moveRight(1.0)
 
     # Update state.
-    let rotateMatrix = rotate(sdl2.getTicks().float/1000.0, XAXIS)
+    let
+      secondsPassed = sdl2.getTicks().float/1000.0
+      rotateMatrix = rotate(secondsPassed, XAXIS)
+      sunPosition = vector3d(sin(secondsPassed) * 30, 10, cos(secondsPassed) * 30)
+    sunMatrix.setTo(move(sunPosition))
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-    withShaderProgram shaderProgram:
-      camera.updateViewUniform(viewLocation)
-      glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, projectionMatrix[0].addr)
-      withVertexArrayObject vao:
+    withShaderProgram lightShader:
+      camera.updateViewUniform(lightViewLoc)
+      glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
+      glUniform3fv(lightSunColorLoc, 1, sunColor[0].addr)
+      glUniform3f(lightSunPositionLoc, sunPosition.x, sunPosition.y, sunPosition.z)
+
+      withVertexArrayObject cubeVao:
         for x in -5..4:
           for y in -5..4:
             for z in -5..4:
-              modelMatrix.setTo(rotateMatrix &
+              modelMatrix.setTo(
                                 move(x.float * 3, y.float * 3, z.float * 3))
-              glUniformMatrix4fv(modelLocation, 1, GL_FALSE, modelMatrix[0].addr)
-              glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nil)
+              glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+              glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
+
+    withShaderProgram simpleShader:
+      glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
+      camera.updateViewUniform(simpleViewLoc)
+      glUniformMatrix4fv(simpleProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
+      glUniform3fv(simpleColorLoc, 1, sunColor[0].addr)
+
+      withVertexArrayObject sunVao:
+        glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     glSwapWindow(window)
 
