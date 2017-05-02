@@ -85,7 +85,7 @@ proc main(): bool =
 
   let cubeVao = initVertexArrayObject()
   defer: cubeVao.destroy()
-  withVertexArrayObject cubeVao:
+  use cubeVao:
     cubeBuffer.bindBuffer()
 
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
@@ -96,7 +96,7 @@ proc main(): bool =
 
   let sunVao = initVertexArrayObject()
   defer: sunVao.destroy()
-  withVertexArrayObject sunVao:
+  use sunVao:
     cubeBuffer.bindBuffer()
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
     glEnableVertexAttribArray(0);
@@ -181,13 +181,13 @@ proc main(): bool =
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-    withShaderProgram lightShader:
+    use lightShader:
       camera.updateViewUniform(lightViewLoc)
       glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
       glUniform3fv(lightSunColorLoc, 1, sunColor[0].addr)
       glUniform3f(lightSunPositionLoc, sunPosition.x, sunPosition.y, sunPosition.z)
 
-      withVertexArrayObject cubeVao:
+      use cubeVao:
         for x in -5..4:
           for y in -5..4:
             for z in -5..4:
@@ -196,13 +196,13 @@ proc main(): bool =
               glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
-    withShaderProgram simpleShader:
+    use simpleShader:
       glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
       camera.updateViewUniform(simpleViewLoc)
       glUniformMatrix4fv(simpleProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
       glUniform3fv(simpleColorLoc, 1, sunColor[0].addr)
 
-      withVertexArrayObject sunVao:
+      use sunVao:
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     glSwapWindow(window)
