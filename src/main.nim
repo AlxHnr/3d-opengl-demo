@@ -1,4 +1,4 @@
-import math, basic3d, sdl2, opengl, shader, globject, mathhelpers
+import math, basic3d, sdl2, opengl, shader, globject, mathhelpers, camera
 
 const
   windowW = 800
@@ -80,12 +80,9 @@ proc main(): bool =
     viewLocation = shaderProgram.getUniformLocation("view")
     projectionLocation = shaderProgram.getUniformLocation("projection")
   var
-    modelMatrix, viewMatrix: Matrix4
+    modelMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-    camera = vector3d(0.0, 0.0, -40.0)
-    cameraVector: Vector3d
-    yaw = -PI/2
-    pitch = 0.0
+    camera = initCamera(0.0, 0.0, -40.0)
 
   # Main loop.
   var
@@ -107,10 +104,8 @@ proc main(): bool =
            event.button.button == sdl2.BUTTON_RIGHT:
         cameraMode = false
       elif event.kind == MouseMotion and cameraMode:
-        yaw += event.motion.xrel.float/200.0
-        pitch += event.motion.yrel.float/200.0
-        if pitch < -PI/2.1: pitch = -PI/2.1
-        elif pitch > PI/2.1: pitch = PI/2.1
+        camera.yawPitch(event.motion.xrel.float/200.0,
+                        event.motion.yrel.float/200.0)
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
           of K_q, K_ESCAPE:
@@ -126,32 +121,22 @@ proc main(): bool =
             discard nil
 
     if keys[SDL_SCANCODE_W.uint8] == 1:
-      camera -= cameraVector
+      camera.moveForward(-1.0)
     elif keys[SDL_SCANCODE_S.uint8] == 1:
-      camera += cameraVector
+      camera.moveForward(1.0)
     if keys[SDL_SCANCODE_A.uint8] == 1:
-      var right = cross(YAXIS, cameraVector)
-      right.normalize()
-      camera -= right
+      camera.moveRight(-1.0)
     elif keys[SDL_SCANCODE_D.uint8] == 1:
-      var right = cross(YAXIS, cameraVector)
-      right.normalize()
-      camera += right
+      camera.moveRight(1.0)
 
     # Update state.
     let rotateMatrix = rotate(sdl2.getTicks().float/1000.0, XAXIS)
-
-    cameraVector.x = cos(yaw) * cos(pitch)
-    cameraVector.y = sin(pitch)
-    cameraVector.z = sin(yaw) * cos(pitch)
-    cameraVector.normalize()
-    viewMatrix = lookAt(camera, cameraVector)
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     withShaderProgram shaderProgram:
-      glUniformMatrix4fv(viewLocation, 1, GL_FALSE, viewMatrix[0].addr)
+      camera.updateViewUniform(viewLocation)
       glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, projectionMatrix[0].addr)
       withVertexArrayObject vao:
         for x in -5..4:
