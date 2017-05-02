@@ -6,16 +6,20 @@ layout (location = 1) in vec3 normalAttribute;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 sunPosition;
 
-out vec3 localCoord, worldCoord, normal;
+out vec3 localCoord, worldCoord, viewCoord, sunViewPosition, normal;
 
 void main(void)
 {
   vec4 positionWorld = model * vec4(position, 1.0);
+  vec4 positionView = view * positionWorld;
 
   localCoord = position;
   worldCoord = positionWorld.xyz;
-  normal = normalize(mat3(transpose(inverse(model))) * normalAttribute);
+  viewCoord = positionView.xyz;
+  sunViewPosition = (view * vec4(sunPosition, 1.0)).xyz;
+  normal = normalize(mat3(transpose(inverse(view * model))) * normalAttribute);
 
-  gl_Position = projection * view * positionWorld;
+  gl_Position = projection * positionView;
 }
