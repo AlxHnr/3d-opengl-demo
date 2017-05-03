@@ -12,7 +12,8 @@ out vec3 viewCoord, sunViewPosition, normal;
 
 vec3 getHeightVec(float x, float z)
 {
-  return vec3(x, sin(time + x + z)/5.0, z);
+  return vec3(x, sin(time + x * 5) *
+                 cos(time + z * 5)/5.0, z);
 }
 
 void main(void)

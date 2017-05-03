@@ -118,7 +118,7 @@ proc main(): bool =
   let cubeBuffer = initArrayBuffer(cubeData)
   defer: cubeBuffer.destroy()
 
-  let flatMeshData = initFlatMesh(16)
+  let flatMeshData = initFlatMesh(48)
 
   let flatMeshVertexBuffer = initArrayBuffer(flatMeshData.vertices)
   defer: flatMeshVertexBuffer.destroy()
@@ -223,14 +223,20 @@ proc main(): bool =
             # Ignore most keys.
             discard nil
 
+    let movementSpeed =
+      if keys[SDL_SCANCODE_SPACE.uint8] == 1:
+        10.0
+      else:
+        1.0
+
     if keys[SDL_SCANCODE_W.uint8] == 1:
-      camera.moveForward(-1.0)
+      camera.moveForward(-movementSpeed)
     elif keys[SDL_SCANCODE_S.uint8] == 1:
-      camera.moveForward(1.0)
+      camera.moveForward(movementSpeed)
     if keys[SDL_SCANCODE_A.uint8] == 1:
-      camera.moveRight(-1.0)
+      camera.moveRight(-movementSpeed)
     elif keys[SDL_SCANCODE_D.uint8] == 1:
-      camera.moveRight(1.0)
+      camera.moveRight(movementSpeed)
 
     # Update state.
     let
@@ -257,7 +263,7 @@ proc main(): bool =
               glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
-    let flatMeshOffset = -100.0
+    let flatMeshOffset = -150.0
     use flatMeshShader:
       camera.updateViewUniform(flatMeshViewLoc)
       glUniformMatrix4fv(flatMeshProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
@@ -284,6 +290,7 @@ proc main(): bool =
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
         sunPosition.x += flatMeshOffset
+        sunPosition.y += 20
         sunMatrix.setTo(move(sunPosition))
         glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
