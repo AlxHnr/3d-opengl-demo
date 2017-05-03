@@ -9,6 +9,41 @@ template sdlAssert(condition: bool) =
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
     return true
 
+proc initFlatMesh(subdivisions: Positive):
+     tuple[vertices: seq[float], indicies: seq[int]]  =
+  let subdivisionsPrev = subdivisions - 1
+  newSeq[float](result.vertices, subdivisions * subdivisions * 3)
+  newSeq[int](result.indicies, subdivisionsPrev * subdivisionsPrev * 6)
+
+  let
+    subdivisionHalf = subdivisions/2
+    edgeLength = 2.0/subdivisions.float
+
+  for z in 0..<subdivisions.int:
+    let z3Sub = z * 3 * subdivisions
+    for x in 0..<subdivisions.int:
+      let x3 = x * 3
+      result.vertices[z3Sub + x3] =
+        (x.float - subdivisionHalf) * edgeLength
+      result.vertices[z3Sub + x3 + 1] = 0.0
+      result.vertices[z3Sub + x3 + 2] =
+        (z.float - subdivisionHalf) * edgeLength
+
+  for z in 0..<subdivisionsPrev:
+    let z6Sub = z * 6 * subdivisionsPrev
+    for x in 0..<subdivisionsPrev:
+      let i = z6Sub + x * 6
+      result.indicies[i]     = z * subdivisions + x
+      result.indicies[i + 1] = z * subdivisions + x + 1
+      result.indicies[i + 2] = (z + 1) * subdivisions + x + 1
+      result.indicies[i + 3] = z * subdivisions + x
+      result.indicies[i + 4] = (z + 1) * subdivisions + x
+      result.indicies[i + 5] = (z + 1) * subdivisions + x + 1
+
+proc loadShaderPair(name: string): auto =
+  loadShaderProgram("shader/" & name & ".vert",
+                    "shader/" & name & ".frag")
+
 proc main(): bool =
   sdlAssert(sdl2.init(INIT_VIDEO) == SdlSuccess)
   defer: sdl2.quit()
@@ -33,7 +68,7 @@ proc main(): bool =
 
   glViewport(0, 0, windowW, windowH)
   glClearColor(0, 0, 0, 0)
-  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_DEPTH_TEST)
 
   # Setup vertices.
   let cubeData =
@@ -83,30 +118,49 @@ proc main(): bool =
   let cubeBuffer = initArrayBuffer(cubeData)
   defer: cubeBuffer.destroy()
 
+  let flatMeshData = initFlatMesh(16)
+
+  let flatMeshVertexBuffer = initArrayBuffer(flatMeshData.vertices)
+  defer: flatMeshVertexBuffer.destroy()
+  let flatMeshIndexBuffer = initElementBuffer(flatMeshData.indicies)
+  defer: flatMeshIndexBuffer.destroy()
+
+  let flatMeshVao = initVertexArrayObject()
+  defer: flatMeshVao.destroy()
+  use flatMeshVao:
+    flatMeshVertexBuffer.bindBuffer()
+    flatMeshIndexBuffer.bindBuffer()
+    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
+    glEnableVertexAttribArray(0)
+
+  # Setup vaos.
   let cubeVao = initVertexArrayObject()
   defer: cubeVao.destroy()
   use cubeVao:
     cubeBuffer.bindBuffer()
 
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(0)
     glVertexAttribPointer(1, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof,
                           cast[pointer](3 * GLfloat.sizeof))
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(1)
 
   let sunVao = initVertexArrayObject()
   defer: sunVao.destroy()
   use sunVao:
     cubeBuffer.bindBuffer()
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(0)
 
   # Setup shaders.
-  let simpleShader = loadShaderProgram("shader/simple.vert", "shader/simple.frag")
+  let simpleShader = loadShaderPair("simple")
   defer: simpleShader.destroy()
 
-  let lightShader = loadShaderProgram("shader/light.vert", "shader/light.frag")
+  let lightShader = loadShaderPair("light")
   defer: lightShader.destroy()
+
+  let flatMeshShader = loadShaderPair("flatMesh")
+  defer: flatMeshShader.destroy()
 
   # Setup transformation matrices.
   let
@@ -115,6 +169,13 @@ proc main(): bool =
     lightProjectionLoc = lightShader.getUniformLocation("projection")
     lightSunColorLoc = lightShader.getUniformLocation("sunColor")
     lightSunPositionLoc = lightShader.getUniformLocation("sunPosition")
+
+    flatMeshModelLoc = flatMeshShader.getUniformLocation("model")
+    flatMeshViewLoc = flatMeshShader.getUniformLocation("view")
+    flatMeshProjectionLoc = flatMeshShader.getUniformLocation("projection")
+    flatMeshSunColorLoc = flatMeshShader.getUniformLocation("sunColor")
+    flatMeshSunPositionLoc = flatMeshShader.getUniformLocation("sunPosition")
+    flatMeshTimeLoc = flatMeshShader.getUniformLocation("time")
 
     simpleModelLoc = simpleShader.getUniformLocation("model")
     simpleViewLoc = simpleShader.getUniformLocation("view")
@@ -154,9 +215,9 @@ proc main(): bool =
             running = false
           of K_g:
             if wireframe:
-              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
             else:
-              glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+              glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
             wireframe = not wireframe
           else:
             # Ignore most keys.
@@ -175,8 +236,8 @@ proc main(): bool =
     let
       secondsPassed = sdl2.getTicks().float/1000.0
       rotateMatrix = rotate(secondsPassed, XAXIS)
-      sunPosition = vector3d(sin(secondsPassed) * 30, 10, cos(secondsPassed) * 30)
-    sunMatrix.setTo(move(sunPosition))
+
+    var sunPosition = vector3d(sin(secondsPassed) * 30, 10, cos(secondsPassed) * 30)
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
@@ -184,8 +245,8 @@ proc main(): bool =
     use lightShader:
       camera.updateViewUniform(lightViewLoc)
       glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
-      glUniform3fv(lightSunColorLoc, 1, sunColor[0].addr)
       glUniform3f(lightSunPositionLoc, sunPosition.x, sunPosition.y, sunPosition.z)
+      glUniform3fv(lightSunColorLoc, 1, sunColor[0].addr)
 
       use cubeVao:
         for x in -5..4:
@@ -196,13 +257,35 @@ proc main(): bool =
               glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
+    let flatMeshOffset = -100.0
+    use flatMeshShader:
+      camera.updateViewUniform(flatMeshViewLoc)
+      glUniformMatrix4fv(flatMeshProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
+      glUniform3f(flatMeshSunPositionLoc, sunPosition.x + flatMeshOffset,
+                  sunPosition.y, sunPosition.z)
+      glUniform3fv(flatMeshSunColorLoc, 1, sunColor[0].addr)
+      glUniform1f(flatMeshTimeLoc, secondsPassed)
+
+      modelMatrix.setTo(scale(30.0) & move(flatMeshOffset, 0, 0))
+      glUniformMatrix4fv(flatMeshModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+
+      use flatMeshVao:
+        glDrawElements(GL_TRIANGLES, flatMeshData.indicies.len.GLsizei,
+                       GL_UNSIGNED_INT, nil)
+
     use simpleShader:
-      glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
       camera.updateViewUniform(simpleViewLoc)
       glUniformMatrix4fv(simpleProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
       glUniform3fv(simpleColorLoc, 1, sunColor[0].addr)
 
       use sunVao:
+        sunMatrix.setTo(move(sunPosition))
+        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
+        glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
+
+        sunPosition.x += flatMeshOffset
+        sunMatrix.setTo(move(sunPosition))
+        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     glSwapWindow(window)
