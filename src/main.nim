@@ -327,7 +327,7 @@ proc main(): bool =
 
       use planeVao:
         modelMatrix.setTo(scale(1000.0) & move(0.0, 0.0, -3000.0))
-        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+        glUniformMatrix4fv(mandelModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
         glDrawArrays(GL_TRIANGLES, 0, planeData.len.GLsizei)
 
     glSwapWindow(window)
