@@ -133,6 +133,24 @@ proc main(): bool =
     glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
     glEnableVertexAttribArray(0)
 
+  let planeData =
+    [
+      -2.0, -1.0, 0.0,
+       1.0, -1.0, 0.0,
+      -2.0,  1.0, 0.0,
+       1.0, -1.0, 0.0,
+       1.0,  1.0, 0.0,
+      -2.0,  1.0, 0.0,
+    ]
+  let planeBuffer = initArrayBuffer(planeData)
+  defer: planeBuffer.destroy()
+
+  let planeVao = initVertexArrayObject()
+  use planeVao:
+    planeBuffer.bindBuffer()
+    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
+    glEnableVertexAttribArray(0)
+
   # Setup vaos.
   let cubeVao = initVertexArrayObject()
   defer: cubeVao.destroy()
@@ -162,6 +180,9 @@ proc main(): bool =
   let flatMeshShader = loadShaderPair("flatMesh")
   defer: flatMeshShader.destroy()
 
+  let mandelShader = loadShaderPair("mandelbrot")
+  defer: mandelShader.destroy()
+
   # Setup transformation matrices.
   let
     lightModelLoc = lightShader.getUniformLocation("model")
@@ -181,6 +202,10 @@ proc main(): bool =
     simpleViewLoc = simpleShader.getUniformLocation("view")
     simpleProjectionLoc = simpleShader.getUniformLocation("projection")
     simpleColorLoc = simpleShader.getUniformLocation("color")
+
+    mandelModelLoc = mandelShader.getUniformLocation("model")
+    mandelViewLoc = mandelShader.getUniformLocation("view")
+    mandelProjectionLoc = mandelShader.getUniformLocation("projection")
   var
     modelMatrix, sunMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
@@ -226,6 +251,8 @@ proc main(): bool =
     let movementSpeed =
       if keys[SDL_SCANCODE_SPACE.uint8] == 1:
         10.0
+      elif keys[SDL_SCANCODE_LSHIFT.uint8] == 1:
+        0.1
       else:
         1.0
 
@@ -293,6 +320,15 @@ proc main(): bool =
         sunMatrix.setTo(move(sunPosition))
         glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
+
+    use mandelShader:
+      camera.updateViewUniform(mandelViewLoc)
+      glUniformMatrix4fv(mandelProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
+
+      use planeVao:
+        modelMatrix.setTo(scale(1000.0) & move(0.0, 0.0, -3000.0))
+        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+        glDrawArrays(GL_TRIANGLES, 0, planeData.len.GLsizei)
 
     glSwapWindow(window)
 
