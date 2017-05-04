@@ -290,7 +290,6 @@ proc main(): bool =
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
         sunPosition.x += flatMeshOffset
-        sunPosition.y += 20
         sunMatrix.setTo(move(sunPosition))
         glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
