@@ -1,4 +1,4 @@
-import math, basic3d, mathhelpers, opengl
+import math, basic3d, mathhelpers
 
 type
   Camera = object
@@ -42,25 +42,22 @@ proc yawPitch*(camera: var Camera; yaw, pitch: float) =
 
   camera.recomputeValues()
 
-proc updateViewUniform*(camera: Camera, location: GLint) =
+proc getLookAtMatrix*(camera: Camera): Matrix4 =
   let invertedPosition = -camera.position
 
-  var matrix: Matrix4
-  matrix[0] = camera.right.x
-  matrix[1] = camera.up.x
-  matrix[2] = camera.direction.x
+  result[0] = camera.right.x
+  result[1] = camera.up.x
+  result[2] = camera.direction.x
 
-  matrix[4] = camera.right.y
-  matrix[5] = camera.up.y
-  matrix[6] = camera.direction.y
+  result[4] = camera.right.y
+  result[5] = camera.up.y
+  result[6] = camera.direction.y
 
-  matrix[8] = camera.right.z
-  matrix[9] = camera.up.z
-  matrix[10] = camera.direction.z
+  result[8] = camera.right.z
+  result[9] = camera.up.z
+  result[10] = camera.direction.z
 
-  matrix[12] = dot(camera.right, invertedPosition)
-  matrix[13] = dot(camera.up, invertedPosition)
-  matrix[14] = dot(camera.direction, invertedPosition)
-  matrix[15] = 1.0
-
-  glUniformMatrix4fv(location, 1, GL_FALSE, matrix[0].addr)
+  result[12] = dot(camera.right, invertedPosition)
+  result[13] = dot(camera.up, invertedPosition)
+  result[14] = dot(camera.direction, invertedPosition)
+  result[15] = 1.0
