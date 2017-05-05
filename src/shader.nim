@@ -1,13 +1,13 @@
 import basic3d, strutils, opengl, mathhelpers, onfailure
 
 type
-  VertexShader = object
+  VertexShader* = object
     id: GLuint
     filePath: string
-  FragmentShader = object
+  FragmentShader* = object
     id: GLuint
     filePath: string
-  ShaderObject = VertexShader | FragmentShader
+  ShaderObject* = VertexShader | FragmentShader
   ShaderProgram* = distinct GLuint
   ShaderError* = object of Exception
 
@@ -56,7 +56,7 @@ proc loadFragmentShader*(filePath: string): FragmentShader =
   initShader(result, filePath, GL_FRAGMENT_SHADER)
 
 proc destroy*(shader: ShaderObject) =
-  glDeleteShader(shader.GLuint)
+  glDeleteShader(shader.id)
 
 proc linkShaderProgram*(vertexShader: VertexShader,
                         fragmentShader: FragmentShader): ShaderProgram =
