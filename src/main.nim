@@ -145,27 +145,19 @@ proc main(): bool =
 
   # Setup transformation matrices.
   let
-    lightModelLoc = lightShader.getUniformLocationMat4("model")
-    lightViewLoc = lightShader.getUniformLocationMat4("view")
-    lightProjectionLoc = lightShader.getUniformLocationMat4("projection")
+    lightShaderUniforms = lightShader.getUniformLocationMVP()
     lightSunColorLoc = lightShader.getUniformLocationVec3("sunColor")
     lightSunPositionLoc = lightShader.getUniformLocationVec3("sunPosition")
 
-    flatMeshModelLoc = flatMeshShader.getUniformLocationMat4("model")
-    flatMeshViewLoc = flatMeshShader.getUniformLocationMat4("view")
-    flatMeshProjectionLoc = flatMeshShader.getUniformLocationMat4("projection")
+    flatMeshUniforms = flatMeshShader.getUniformLocationMVP()
     flatMeshSunColorLoc = flatMeshShader.getUniformLocationVec3("sunColor")
     flatMeshSunPositionLoc = flatMeshShader.getUniformLocationVec3("sunPosition")
     flatMeshTimeLoc = flatMeshShader.getUniformLocationFloat("time")
 
-    simpleModelLoc = simpleShader.getUniformLocationMat4("model")
-    simpleViewLoc = simpleShader.getUniformLocationMat4("view")
-    simpleProjectionLoc = simpleShader.getUniformLocationMat4("projection")
+    simpleUniforms = simpleShader.getUniformLocationMVP()
     simpleColorLoc = simpleShader.getUniformLocationVec3("color")
 
-    mandelModelLoc = mandelShader.getUniformLocationMat4("model")
-    mandelViewLoc = mandelShader.getUniformLocationMat4("view")
-    mandelProjectionLoc = mandelShader.getUniformLocationMat4("projection")
+    mandelUniforms = mandelShader.getUniformLocationMVP()
 
     sunColor = vector3d(1.0, 1.0, 1.0)
   var
@@ -239,8 +231,8 @@ proc main(): bool =
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     use lightShader:
-      lightViewLoc.updateWith(lookAtMatrix)
-      lightProjectionLoc.updateWith(projectionMatrix)
+      lightShaderUniforms.view.updateWith(lookAtMatrix)
+      lightShaderUniforms.projection.updateWith(projectionMatrix)
       lightSunPositionLoc.updateWith(sunPosition)
       lightSunColorLoc.updateWith(sunColor)
 
@@ -250,44 +242,44 @@ proc main(): bool =
             for z in -5..4:
               modelMatrix.setTo(rotateMatrix &
                                 move(x.float * 3, y.float * 3, z.float * 3))
-              lightModelLoc.updateWith(modelMatrix)
+              lightShaderUniforms.model.updateWith(modelMatrix)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     let flatMeshOffset = -150.0
     use flatMeshShader:
-      flatMeshViewLoc.updateWith(lookAtMatrix)
-      flatMeshProjectionLoc.updateWith(projectionMatrix)
+      flatMeshUniforms.view.updateWith(lookAtMatrix)
+      flatMeshUniforms.projection.updateWith(projectionMatrix)
       flatMeshSunPositionLoc.updateWith(sunPosition)
       flatMeshSunColorLoc.updateWith(sunColor)
       flatMeshTimeLoc.updateWith(secondsPassed)
 
       modelMatrix.setTo(scale(30.0) & move(flatMeshOffset, 0, 0))
-      flatMeshModelLoc.updateWith(modelMatrix)
+      flatMeshUniforms.model.updateWith(modelMatrix)
 
       flatMesh.draw()
 
     use simpleShader:
-      simpleViewLoc.updateWith(lookAtMatrix)
-      simpleProjectionLoc.updateWith(projectionMatrix)
+      simpleUniforms.view.updateWith(lookAtMatrix)
+      simpleUniforms.projection.updateWith(projectionMatrix)
       simpleColorLoc.updateWith(sunColor)
 
       use sunVao:
         sunMatrix.setTo(move(sunPosition))
-        simpleModelLoc.updateWith(sunMatrix)
+        simpleUniforms.model.updateWith(sunMatrix)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
         sunPosition.x += flatMeshOffset
         sunMatrix.setTo(move(sunPosition))
-        simpleModelLoc.updateWith(sunMatrix)
+        simpleUniforms.model.updateWith(sunMatrix)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     use mandelShader:
-      mandelViewLoc.updateWith(lookAtMatrix)
-      mandelProjectionLoc.updateWith(projectionMatrix)
+      mandelUniforms.view.updateWith(lookAtMatrix)
+      mandelUniforms.projection.updateWith(projectionMatrix)
 
       use planeVao:
         modelMatrix.setTo(scale(1000.0) & move(0.0, 0.0, -3000.0))
-        mandelModelLoc.updateWith(modelMatrix)
+        mandelUniforms.model.updateWith(modelMatrix)
         glDrawArrays(GL_TRIANGLES, 0, planeData.len.GLsizei)
 
     glSwapWindow(window)

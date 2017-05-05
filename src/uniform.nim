@@ -4,6 +4,8 @@ type
   UniformLocationFloat = distinct GLuint
   UniformLocationVec3 = distinct GLuint
   UniformLocationMat4 = distinct GLuint
+  UniformLocationMVP = object
+    model, view, projection: UniformLocationMat4
 
 proc getUniformLocation(program: ShaderProgram, name: string): GLint =
   result = glGetUniformLocation(program.GLuint, name)
@@ -31,3 +33,12 @@ proc getUniformLocationMat4*(program: ShaderProgram, name: string):
 
 proc updateWith*(location: UniformLocationMat4, matrix: var Matrix4) =
   glUniformMatrix4fv(location.GLint, 1, GL_FALSE, matrix[0].addr)
+
+proc getUniformLocationMVP*(program: ShaderProgram): UniformLocationMVP =
+  result.model = getUniformLocationMat4(program, "model")
+  result.view = getUniformLocationMat4(program, "view")
+  result.projection = getUniformLocationMat4(program, "projection")
+
+proc model*(u: UniformLocationMVP): UniformLocationMat4 = u.model
+proc view*(u: UniformLocationMVP): UniformLocationMat4 = u.view
+proc projection*(u: UniformLocationMVP): UniformLocationMat4 = u.projection
