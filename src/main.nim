@@ -1,7 +1,7 @@
 import
   math, basic3d,
   sdl2, opengl,
-  globject, mathhelpers, camera, flatmesh, shaderwrapper
+  globject, mathhelpers, camera, flatmesh, shaderwrapper, uniform
 
 const
   windowW = 800
@@ -11,15 +11,6 @@ template sdlAssert(condition: bool) =
   if not condition:
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
     return true
-
-proc loadShaderPair(name: string): auto =
-  let vertexShader = loadVertexShader("shader/" & name & ".vert")
-  defer: vertexShader.destroy()
-
-  let fragmentShader = loadFragmentShader("shader/" & name & ".frag")
-  defer: fragmentShader.destroy()
-
-  linkShaderProgram(vertexShader, fragmentShader)
 
 proc main(): bool =
   sdlAssert(sdl2.init(INIT_VIDEO) == SdlSuccess)
@@ -107,16 +98,21 @@ proc main(): bool =
                           cast[pointer](3 * GLfloat.sizeof))
     glEnableVertexAttribArray(1)
 
-  let flatMesh = initFlatMesh(48)
+  let flatMesh = initFlatMesh(128)
   defer: flatMesh.destroy()
-
-  # Setup shaders.
 
   # Setup transformation matrices.
   var
-    modelMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-    camera = initCamera(0.0, 0.0, -40.0)
+    camera = initCamera(0.0, 10.0, -40.0)
+
+  # Setup shaders.
+  let flatMeshShader = loadFlatMeshShader()
+  defer: flatMeshShader.destroy()
+  use flatMeshShader:
+    flatMeshShader.projection.updateWith(projectionMatrix)
+    flatMeshShader.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+    flatMeshShader.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
 
   # Main loop.
   var
@@ -172,14 +168,16 @@ proc main(): bool =
       camera.moveRight(movementSpeed)
 
     # Update state.
-    let
-      secondsPassed = sdl2.getTicks().float/1000.0
-
-    var
-      lookAtMatrix = camera.getLookAtMatrix()
+    let secondsPassed = sdl2.getTicks().float/1000.0
+    var lookAtMatrix = camera.getLookAtMatrix()
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+
+    use flatMeshShader:
+      flatMeshShader.view.updateWith(lookAtMatrix)
+      flatMeshShader.model.updateWith(scale(1000.0))
+      flatMesh.draw()
 
     glSwapWindow(window)
 
