@@ -13,8 +13,13 @@ template sdlAssert(condition: bool) =
     return true
 
 proc loadShaderPair(name: string): auto =
-  loadShaderProgram("shader/" & name & ".vert",
-                    "shader/" & name & ".frag")
+  let vertexShader = loadVertexShader("shader/" & name & ".vert")
+  defer: vertexShader.destroy()
+
+  let fragmentShader = loadFragmentShader("shader/" & name & ".frag")
+  defer: fragmentShader.destroy()
+
+  linkShaderProgram(vertexShader, fragmentShader)
 
 proc main(): bool =
   sdlAssert(sdl2.init(INIT_VIDEO) == SdlSuccess)

@@ -68,16 +68,6 @@ proc linkShaderProgram*(vertexShader: VertexShader,
       let msg = "failed to link shader: " & $programInfo
       raise newException(ShaderError, msg)
 
-proc loadShaderProgram*(vertexPath: string,
-                        fragmentPath: string): ShaderProgram =
-  let vertexShader = loadVertexShader(vertexPath)
-  defer: vertexShader.destroy()
-
-  let fragmentShader = loadFragmentShader(fragmentPath)
-  defer: fragmentShader.destroy()
-
-  linkShaderProgram(vertexShader, fragmentShader)
-
 proc destroy*(program: ShaderProgram) =
   glDeleteProgram(program.GLuint)
 
