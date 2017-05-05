@@ -145,13 +145,9 @@ proc main(): bool =
 
   # Setup transformation matrices.
   let
-    lightShaderUniforms = lightShader.getUniformLocationMVP()
-    lightSunColorLoc = lightShader.getUniformLocationVec3("lightColor")
-    lightSunPositionLoc = lightShader.getUniformLocationVec3("lightPosition")
+    lightShaderUniforms = lightShader.getUniformLocationMVPLight()
 
-    flatMeshUniforms = flatMeshShader.getUniformLocationMVP()
-    flatMeshSunColorLoc = flatMeshShader.getUniformLocationVec3("lightColor")
-    flatMeshSunPositionLoc = flatMeshShader.getUniformLocationVec3("lightPosition")
+    flatMeshUniforms = flatMeshShader.getUniformLocationMVPLight()
     flatMeshTimeLoc = flatMeshShader.getUniformLocationFloat("time")
 
     simpleUniforms = simpleShader.getUniformLocationMVP()
@@ -233,8 +229,8 @@ proc main(): bool =
     use lightShader:
       lightShaderUniforms.view.updateWith(lookAtMatrix)
       lightShaderUniforms.projection.updateWith(projectionMatrix)
-      lightSunPositionLoc.updateWith(sunPosition)
-      lightSunColorLoc.updateWith(sunColor)
+      lightShaderUniforms.lightPosition.updateWith(sunPosition)
+      lightShaderUniforms.lightColor.updateWith(sunColor)
 
       use cubeVao:
         for x in -5..4:
@@ -249,8 +245,8 @@ proc main(): bool =
     use flatMeshShader:
       flatMeshUniforms.view.updateWith(lookAtMatrix)
       flatMeshUniforms.projection.updateWith(projectionMatrix)
-      flatMeshSunPositionLoc.updateWith(sunPosition)
-      flatMeshSunColorLoc.updateWith(sunColor)
+      flatMeshUniforms.lightPosition.updateWith(sunPosition)
+      flatMeshUniforms.lightColor.updateWith(sunColor)
       flatMeshTimeLoc.updateWith(secondsPassed)
 
       modelMatrix.setTo(scale(30.0) & move(flatMeshOffset, 0, 0))

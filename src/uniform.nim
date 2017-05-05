@@ -6,6 +6,9 @@ type
   UniformLocationMat4 = distinct GLuint
   UniformLocationMVP = object
     model, view, projection: UniformLocationMat4
+  UniformLocationMVPLight = object
+    model, view, projection: UniformLocationMat4
+    lightPosition, lightColor: UniformLocationVec3
 
 proc getUniformLocation(program: ShaderProgram, name: string): GLint =
   result = glGetUniformLocation(program.GLuint, name)
@@ -39,6 +42,24 @@ proc getUniformLocationMVP*(program: ShaderProgram): UniformLocationMVP =
   result.view = getUniformLocationMat4(program, "view")
   result.projection = getUniformLocationMat4(program, "projection")
 
-proc model*(u: UniformLocationMVP): UniformLocationMat4 = u.model
-proc view*(u: UniformLocationMVP): UniformLocationMat4 = u.view
-proc projection*(u: UniformLocationMVP): UniformLocationMat4 = u.projection
+proc getUniformLocationMVPLight*(program: ShaderProgram):
+                              UniformLocationMVPLight =
+  result.model = getUniformLocationMat4(program, "model")
+  result.view = getUniformLocationMat4(program, "view")
+  result.projection = getUniformLocationMat4(program, "projection")
+  result.lightPosition = program.getUniformLocationVec3("lightPosition")
+  result.lightColor = program.getUniformLocationVec3("lightColor")
+
+proc model*(location: UniformLocationMVP | UniformLocationMVPLight):
+            UniformLocationMat4 =
+ location.model
+proc view*(location: UniformLocationMVP | UniformLocationMVPLight):
+           UniformLocationMat4 =
+ location.view
+proc projection*(location: UniformLocationMVP | UniformLocationMVPLight):
+                 UniformLocationMat4 =
+ location.projection
+proc lightPosition*(location: UniformLocationMVPLight): UniformLocationVec3 =
+ location.lightPosition
+proc lightColor*(location: UniformLocationMVPLight): UniformLocationVec3 =
+ location.lightColor
