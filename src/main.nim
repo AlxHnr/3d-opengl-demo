@@ -146,12 +146,12 @@ proc main(): bool =
   # Setup transformation matrices.
   let
     lightShaderUniforms = lightShader.getUniformLocationMVP()
-    lightSunColorLoc = lightShader.getUniformLocationVec3("sunColor")
-    lightSunPositionLoc = lightShader.getUniformLocationVec3("sunPosition")
+    lightSunColorLoc = lightShader.getUniformLocationVec3("lightColor")
+    lightSunPositionLoc = lightShader.getUniformLocationVec3("lightPosition")
 
     flatMeshUniforms = flatMeshShader.getUniformLocationMVP()
-    flatMeshSunColorLoc = flatMeshShader.getUniformLocationVec3("sunColor")
-    flatMeshSunPositionLoc = flatMeshShader.getUniformLocationVec3("sunPosition")
+    flatMeshSunColorLoc = flatMeshShader.getUniformLocationVec3("lightColor")
+    flatMeshSunPositionLoc = flatMeshShader.getUniformLocationVec3("lightPosition")
     flatMeshTimeLoc = flatMeshShader.getUniformLocationFloat("time")
 
     simpleUniforms = simpleShader.getUniformLocationMVP()

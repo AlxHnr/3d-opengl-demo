@@ -6,9 +6,9 @@ layout (location = 1) in vec3 normalAttribute;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec3 sunPosition;
+uniform vec3 lightPosition;
 
-out vec3 localCoord, worldCoord, viewCoord, sunViewPosition, normal;
+out vec3 localCoord, worldCoord, viewCoord, lightViewPosition, normal;
 
 void main(void)
 {
@@ -18,7 +18,7 @@ void main(void)
   localCoord = position;
   worldCoord = positionWorld.xyz;
   viewCoord = positionView.xyz;
-  sunViewPosition = (view * vec4(sunPosition, 1.0)).xyz;
+  lightViewPosition = (view * vec4(lightPosition, 1.0)).xyz;
   normal = normalize(mat3(transpose(inverse(view * model))) * normalAttribute);
 
   gl_Position = projection * positionView;

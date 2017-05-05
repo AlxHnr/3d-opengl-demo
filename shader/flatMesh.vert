@@ -5,10 +5,10 @@ layout (location = 0) in vec3 position;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec3 sunPosition;
+uniform vec3 lightPosition;
 uniform float time;
 
-out vec3 viewCoord, sunViewPosition, normal;
+out vec3 viewCoord, lightViewPosition, normal;
 
 vec3 getHeightVec(float x, float z)
 {
@@ -27,7 +27,7 @@ void main(void)
   vec4 positionView = modelView * vec4(a, 1.0);
 
   viewCoord = positionView.xyz;
-  sunViewPosition = (view * vec4(sunPosition, 1.0)).xyz;
+  lightViewPosition = (view * vec4(lightPosition, 1.0)).xyz;
 
   /* Compute normals. */
   normal = normalize(mat3(transpose(inverse(modelView))) * baseNormal);
