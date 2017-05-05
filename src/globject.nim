@@ -1,9 +1,9 @@
-import opengl, mathhelpers
+import opengl, mathhelpers, onfailure
 
 type
-  ArrayBuffer = distinct GLuint
-  ElementBuffer = distinct GLuint
-  VertexArrayObject = distinct GLuint
+  ArrayBuffer* = distinct GLuint
+  ElementBuffer* = distinct GLuint
+  VertexArrayObject* = distinct GLuint
 
 proc toGLenum(buffer: ArrayBuffer): GLenum = GL_ARRAY_BUFFER
 proc toGLenum(buffer: ElementBuffer): GLenum = GL_ELEMENT_ARRAY_BUFFER
@@ -12,16 +12,12 @@ proc initBuffer(bufferType: GLenum,
                 values: seq[GLfloat] | seq[GLuint]): GLuint =
   var values = values
   glGenBuffers(1, result.addr)
-
-  try:
+  onFailure glDeleteBuffers(1, result.addr):
     glBindBuffer(bufferType, result)
     glBufferData(bufferType,
                  values.len * values[0].sizeof,
                  values[0].addr, GL_STATIC_DRAW)
     glBindBuffer(bufferType, 0)
-  except:
-    glDeleteBuffers(1, result.addr)
-    raise
 
 proc initArrayBuffer*(vertices: varargs[float]): ArrayBuffer =
   initBuffer(result.toGLenum, vertices.toGLfloatSeq).ArrayBuffer
