@@ -16,5 +16,5 @@ void main(void)
   vec3 reflectDirection = reflect(lightDirection, normal);
   float specular = pow(max(dot(viewDirection, reflectDirection), 0.0), 32);
 
-  color = vec4(((0.1 + diffuse) * lightColor) * baseColor, 1.0);
+  color = vec4(((0.1 + diffuse + specular) * lightColor) * baseColor, 1.0);
 }

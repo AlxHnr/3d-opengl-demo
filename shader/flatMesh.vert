@@ -6,14 +6,13 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 lightPosition;
-uniform float time;
 
 out vec3 viewCoord, lightViewPosition, normal;
 
 vec3 getHeightVec(float x, float z)
 {
-  return vec3(x, sin(time + x * 5) *
-                 cos(time + z * 5)/5.0, z);
+  return vec3(x, sin(x * 5) *
+                 cos(z * 5)/5.0, z);
 }
 
 void main(void)
