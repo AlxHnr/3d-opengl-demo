@@ -98,16 +98,16 @@ proc main(): bool =
                           cast[pointer](3 * GLfloat.sizeof))
     glEnableVertexAttribArray(1)
 
-  let flatMesh = initFlatMesh(128)
+  let flatMesh = initFlatMesh(48)
   defer: flatMesh.destroy()
 
   # Setup transformation matrices.
   var
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-    camera = initCamera(0.0, 10.0, -40.0)
+    camera = initCamera(0.0, 300.0, -40.0)
 
   # Setup shaders.
-  let flatMeshShader = loadFlatMeshShader()
+  var flatMeshShader = loadFlatMeshShader()
   defer: flatMeshShader.destroy()
   use flatMeshShader:
     flatMeshShader.projection.updateWith(projectionMatrix)
@@ -119,6 +119,7 @@ proc main(): bool =
     running = true
     wireframe = false
     cameraMode = false
+    shaderReloadCounter = 0
     event = sdl2.defaultEvent
   let keys = sdl2.getKeyboardState()
 
@@ -170,6 +171,16 @@ proc main(): bool =
     # Update state.
     let secondsPassed = sdl2.getTicks().float/1000.0
     var lookAtMatrix = camera.getLookAtMatrix()
+
+    # Reload shaders.
+    if shaderReloadCounter == 40:
+      shaderReloadCounter = 0
+      flatMeshShader.tryReload:
+        flatMeshShader.projection.updateWith(projectionMatrix)
+        flatMeshShader.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+        flatMeshShader.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
+    else:
+      shaderReloadCounter += 1
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)

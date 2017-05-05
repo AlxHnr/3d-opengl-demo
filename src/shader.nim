@@ -58,6 +58,9 @@ proc loadFragmentShader*(filePath: string): FragmentShader =
 proc destroy*(shader: ShaderObject) =
   glDeleteShader(shader.id)
 
+proc filePath*(shader: ShaderObject): string =
+  shader.filePath
+
 proc linkShaderProgram*(vertexShader: VertexShader,
                         fragmentShader: FragmentShader): ShaderProgram =
   let program = glCreateProgram()

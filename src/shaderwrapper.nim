@@ -1,9 +1,11 @@
-import shader, uniform, onfailure
+import os, times, shader, uniform, onfailure
 
 type
   BasicLightShader = object
     vertexShader: VertexShader
+    vertexShaderSourceTime: Time
     fragmentShader: FragmentShader
+    fragmentShaderSourceTime: Time
     program: ShaderProgram
     model, view, projection: UniformLocationMat4
     lightPosition, lightColor: UniformLocationVec3
@@ -13,8 +15,14 @@ type
 
 proc loadFlatMeshShader*(): BasicLightShader =
   result.vertexShader = loadVertexShader("shader/flatMesh.vert")
+  result.vertexShaderSourceTime =
+    result.vertexShader.filePath.getLastModificationTime()
+
   onFailure destroy result.vertexShader:
     result.fragmentShader = loadFragmentShader("shader/flatMesh.frag")
+    result.fragmentShaderSourceTime =
+      result.fragmentShader.filePath.getLastModificationTime()
+
     onFailure destroy result.fragmentShader:
       result.program =
         linkShaderProgram(result.vertexShader, result.fragmentShader)
@@ -36,6 +44,37 @@ proc destroy*(shader: ShaderWrapper) =
 template use*(shader: ShaderWrapper, body: untyped) =
   use shader.program:
     body
+
+proc checkAndReloadChanges*(shader: var ShaderWrapper): bool =
+  let
+    vertexSourceTime =
+      shader.vertexShader.filePath.getLastModificationTime()
+    fragmentSourceTime =
+      shader.fragmentShader.filePath.getLastModificationTime()
+    vertexHasChanged = shader.vertexShaderSourceTime < vertexSourceTime
+    fragmentHasChanged = shader.fragmentShaderSourceTime < fragmentSourceTime
+
+  if vertexHasChanged or fragmentHasChanged:
+    try:
+      if vertexHasChanged:
+        shader.vertexShaderSourceTime = vertexSourceTime
+        shader.vertexShader.recompile()
+      if fragmentHasChanged:
+        shader.fragmentShaderSourceTime = fragmentSourceTime
+        shader.fragmentShader.recompile()
+
+      let newProgram =
+        linkShaderProgram(shader.vertexShader, shader.fragmentShader)
+      shader.program.destroy()
+      shader.program = newProgram
+      result = true
+    except ShaderError:
+      echo getCurrentExceptionMsg()
+
+template tryReload*(shader: var ShaderWrapper, body: untyped) =
+  if shader.checkAndReloadChanges():
+    use shader:
+      body
 
 proc model*(w: MVPShaderWrapper): UniformLocationMat4 = w.model
 proc view*(w: MVPShaderWrapper): UniformLocationMat4 = w.view
