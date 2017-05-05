@@ -143,7 +143,6 @@ proc main(): bool =
   let mandelShader = loadShaderPair("mandelbrot")
   defer: mandelShader.destroy()
 
-  # Setup transformation matrices.
   let
     lightShaderUniforms = lightShader.getUniformLocationMVPLight()
 
@@ -156,6 +155,8 @@ proc main(): bool =
     mandelUniforms = mandelShader.getUniformLocationMVP()
 
     sunColor = vector3d(1.0, 1.0, 1.0)
+
+  # Setup transformation matrices.
   var
     modelMatrix, sunMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
