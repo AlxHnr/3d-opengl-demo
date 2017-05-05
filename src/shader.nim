@@ -1,9 +1,12 @@
-import strutils, opengl
+import basic3d, strutils, opengl, mathhelpers, onfailure
 
 type
   VertexShader = distinct GLuint
   FragmentShader = distinct GLuint
   ShaderProgram = distinct GLuint
+  UniformLocationFloat = distinct GLuint
+  UniformLocationVec3 = distinct GLuint
+  UniformLocationMat4 = distinct GLuint
   ShaderError* = object of Exception
 
 proc loadShader(path: string,
@@ -16,7 +19,7 @@ proc loadShader(path: string,
   let shader = glCreateShader(shaderType)
   result = shader
 
-  try:
+  onFailure glDeleteShader(shader):
     let stringArray = allocCStringArray([readFile(path)])
     defer: deallocCStringArray(stringArray)
 
@@ -34,9 +37,6 @@ proc loadShader(path: string,
 
       let msg = shaderName & " shader: \"" & path & "\": " & $shaderInfo
       raise newException(ShaderError, msg)
-  except:
-    glDeleteShader(shader)
-    raise
 
 proc loadVertexShader*(path: string): VertexShader =
   loadShader(path, GL_VERTEX_SHADER, "vertex").VertexShader
@@ -52,7 +52,7 @@ proc linkShaderProgram*(vertexShader: VertexShader,
   let program = glCreateProgram()
   result = program.ShaderProgram
 
-  try:
+  onFailure glDeleteProgram(program):
     glAttachShader(program, vertexShader.GLuint)
     glAttachShader(program, fragmentShader.GLuint)
     glLinkProgram(program)
@@ -70,9 +70,6 @@ proc linkShaderProgram*(vertexShader: VertexShader,
 
       let msg = "failed to link shader: " & $programInfo
       raise newException(ShaderError, msg)
-  except:
-    glDeleteProgram(program)
-    raise
 
 proc loadShaderProgram*(vertexPath: string,
                         fragmentPath: string): ShaderProgram =
@@ -97,8 +94,26 @@ template use*(program: ShaderProgram, body: untyped) =
   finally:
     glUseProgram(previousProgram.GLuint)
 
-proc getUniformLocation*(program: ShaderProgram, name: string): GLint =
+proc getUniformLocation(program: ShaderProgram, name: string): GLint =
   result = glGetUniformLocation(program.GLuint, name)
   if result == -1:
     let msg = "uniform location doesn't exist: \"" & name & "\""
     raise newException(ShaderError, msg)
+
+proc getUniformLocationFloat*(program: ShaderProgram, name: string):
+                              UniformLocationFloat =
+  program.getUniformLocation(name).UniformLocationFloat
+proc updateWith*(location: UniformLocationFloat, value: float) =
+  glUniform1f(location.GLint, value)
+
+proc getUniformLocationVec3*(program: ShaderProgram, name: string):
+                             UniformLocationVec3 =
+  program.getUniformLocation(name).UniformLocationVec3
+proc updateWith*(location: UniformLocationVec3; vector: Vector3d) =
+  glUniform3f(location.GLint, vector.x, vector.y, vector.z)
+
+proc getUniformLocationMat4*(program: ShaderProgram, name: string):
+                             UniformLocationMat4 =
+  program.getUniformLocation(name).UniformLocationMat4
+proc updateWith*(location: UniformLocationMat4, matrix: var Matrix4) =
+  glUniformMatrix4fv(location.GLint, 1, GL_FALSE, matrix[0].addr)
