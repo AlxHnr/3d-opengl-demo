@@ -1,4 +1,7 @@
-import math, basic3d, sdl2, opengl, shader, globject, mathhelpers, camera
+import
+  math, basic3d,
+  sdl2, opengl,
+  shader, globject, mathhelpers, camera, flatmesh
 
 const
   windowW = 800
@@ -8,37 +11,6 @@ template sdlAssert(condition: bool) =
   if not condition:
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
     return true
-
-proc initFlatMesh(subdivisions: Positive):
-     tuple[vertices: seq[float], indicies: seq[int]]  =
-  let subdivisionsPrev = subdivisions - 1
-  newSeq[float](result.vertices, subdivisions * subdivisions * 3)
-  newSeq[int](result.indicies, subdivisionsPrev * subdivisionsPrev * 6)
-
-  let
-    subdivisionHalf = subdivisions/2
-    edgeLength = 2.0/subdivisions.float
-
-  for z in 0..<subdivisions.int:
-    let z3Sub = z * 3 * subdivisions
-    for x in 0..<subdivisions.int:
-      let x3 = x * 3
-      result.vertices[z3Sub + x3] =
-        (x.float - subdivisionHalf) * edgeLength
-      result.vertices[z3Sub + x3 + 1] = 0.0
-      result.vertices[z3Sub + x3 + 2] =
-        (z.float - subdivisionHalf) * edgeLength
-
-  for z in 0..<subdivisionsPrev:
-    let z6Sub = z * 6 * subdivisionsPrev
-    for x in 0..<subdivisionsPrev:
-      let i = z6Sub + x * 6
-      result.indicies[i]     = z * subdivisions + x
-      result.indicies[i + 1] = z * subdivisions + x + 1
-      result.indicies[i + 2] = (z + 1) * subdivisions + x + 1
-      result.indicies[i + 3] = z * subdivisions + x
-      result.indicies[i + 4] = (z + 1) * subdivisions + x
-      result.indicies[i + 5] = (z + 1) * subdivisions + x + 1
 
 proc loadShaderPair(name: string): auto =
   loadShaderProgram("shader/" & name & ".vert",
@@ -118,20 +90,8 @@ proc main(): bool =
   let cubeBuffer = initArrayBuffer(cubeData)
   defer: cubeBuffer.destroy()
 
-  let flatMeshData = initFlatMesh(48)
-
-  let flatMeshVertexBuffer = initArrayBuffer(flatMeshData.vertices)
-  defer: flatMeshVertexBuffer.destroy()
-  let flatMeshIndexBuffer = initElementBuffer(flatMeshData.indicies)
-  defer: flatMeshIndexBuffer.destroy()
-
-  let flatMeshVao = initVertexArrayObject()
-  defer: flatMeshVao.destroy()
-  use flatMeshVao:
-    flatMeshVertexBuffer.bindBuffer()
-    flatMeshIndexBuffer.bindBuffer()
-    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 3 * GLfloat.sizeof, nil)
-    glEnableVertexAttribArray(0)
+  let flatMesh = initFlatMesh(48)
+  defer: flatMesh.destroy()
 
   let planeData =
     [
@@ -185,32 +145,33 @@ proc main(): bool =
 
   # Setup transformation matrices.
   let
-    lightModelLoc = lightShader.getUniformLocation("model")
-    lightViewLoc = lightShader.getUniformLocation("view")
-    lightProjectionLoc = lightShader.getUniformLocation("projection")
-    lightSunColorLoc = lightShader.getUniformLocation("sunColor")
-    lightSunPositionLoc = lightShader.getUniformLocation("sunPosition")
+    lightModelLoc = lightShader.getUniformLocationMat4("model")
+    lightViewLoc = lightShader.getUniformLocationMat4("view")
+    lightProjectionLoc = lightShader.getUniformLocationMat4("projection")
+    lightSunColorLoc = lightShader.getUniformLocationVec3("sunColor")
+    lightSunPositionLoc = lightShader.getUniformLocationVec3("sunPosition")
 
-    flatMeshModelLoc = flatMeshShader.getUniformLocation("model")
-    flatMeshViewLoc = flatMeshShader.getUniformLocation("view")
-    flatMeshProjectionLoc = flatMeshShader.getUniformLocation("projection")
-    flatMeshSunColorLoc = flatMeshShader.getUniformLocation("sunColor")
-    flatMeshSunPositionLoc = flatMeshShader.getUniformLocation("sunPosition")
-    flatMeshTimeLoc = flatMeshShader.getUniformLocation("time")
+    flatMeshModelLoc = flatMeshShader.getUniformLocationMat4("model")
+    flatMeshViewLoc = flatMeshShader.getUniformLocationMat4("view")
+    flatMeshProjectionLoc = flatMeshShader.getUniformLocationMat4("projection")
+    flatMeshSunColorLoc = flatMeshShader.getUniformLocationVec3("sunColor")
+    flatMeshSunPositionLoc = flatMeshShader.getUniformLocationVec3("sunPosition")
+    flatMeshTimeLoc = flatMeshShader.getUniformLocationFloat("time")
 
-    simpleModelLoc = simpleShader.getUniformLocation("model")
-    simpleViewLoc = simpleShader.getUniformLocation("view")
-    simpleProjectionLoc = simpleShader.getUniformLocation("projection")
-    simpleColorLoc = simpleShader.getUniformLocation("color")
+    simpleModelLoc = simpleShader.getUniformLocationMat4("model")
+    simpleViewLoc = simpleShader.getUniformLocationMat4("view")
+    simpleProjectionLoc = simpleShader.getUniformLocationMat4("projection")
+    simpleColorLoc = simpleShader.getUniformLocationVec3("color")
 
-    mandelModelLoc = mandelShader.getUniformLocation("model")
-    mandelViewLoc = mandelShader.getUniformLocation("view")
-    mandelProjectionLoc = mandelShader.getUniformLocation("projection")
+    mandelModelLoc = mandelShader.getUniformLocationMat4("model")
+    mandelViewLoc = mandelShader.getUniformLocationMat4("view")
+    mandelProjectionLoc = mandelShader.getUniformLocationMat4("projection")
+
+    sunColor = vector3d(1.0, 1.0, 1.0)
   var
     modelMatrix, sunMatrix: Matrix4
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
     camera = initCamera(0.0, 0.0, -40.0)
-    sunColor = [1.0.GLfloat, 1.0.GLfloat, 1.0.GLfloat]
 
   # Main loop.
   var
@@ -270,16 +231,18 @@ proc main(): bool =
       secondsPassed = sdl2.getTicks().float/1000.0
       rotateMatrix = rotate(secondsPassed, XAXIS)
 
-    var sunPosition = vector3d(sin(secondsPassed) * 30, 10, cos(secondsPassed) * 30)
+    var
+      sunPosition = vector3d(sin(secondsPassed) * 30, 10, cos(secondsPassed) * 30)
+      lookAtMatrix = camera.getLookAtMatrix()
 
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     use lightShader:
-      camera.updateViewUniform(lightViewLoc)
-      glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
-      glUniform3f(lightSunPositionLoc, sunPosition.x, sunPosition.y, sunPosition.z)
-      glUniform3fv(lightSunColorLoc, 1, sunColor[0].addr)
+      lightViewLoc.updateWith(lookAtMatrix)
+      lightProjectionLoc.updateWith(projectionMatrix)
+      lightSunPositionLoc.updateWith(sunPosition)
+      lightSunColorLoc.updateWith(sunColor)
 
       use cubeVao:
         for x in -5..4:
@@ -287,47 +250,44 @@ proc main(): bool =
             for z in -5..4:
               modelMatrix.setTo(rotateMatrix &
                                 move(x.float * 3, y.float * 3, z.float * 3))
-              glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+              lightModelLoc.updateWith(modelMatrix)
               glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     let flatMeshOffset = -150.0
     use flatMeshShader:
-      camera.updateViewUniform(flatMeshViewLoc)
-      glUniformMatrix4fv(flatMeshProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
-      glUniform3f(flatMeshSunPositionLoc, sunPosition.x + flatMeshOffset,
-                  sunPosition.y, sunPosition.z)
-      glUniform3fv(flatMeshSunColorLoc, 1, sunColor[0].addr)
-      glUniform1f(flatMeshTimeLoc, secondsPassed)
+      flatMeshViewLoc.updateWith(lookAtMatrix)
+      flatMeshProjectionLoc.updateWith(projectionMatrix)
+      flatMeshSunPositionLoc.updateWith(sunPosition)
+      flatMeshSunColorLoc.updateWith(sunColor)
+      flatMeshTimeLoc.updateWith(secondsPassed)
 
       modelMatrix.setTo(scale(30.0) & move(flatMeshOffset, 0, 0))
-      glUniformMatrix4fv(flatMeshModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+      flatMeshModelLoc.updateWith(modelMatrix)
 
-      use flatMeshVao:
-        glDrawElements(GL_TRIANGLES, flatMeshData.indicies.len.GLsizei,
-                       GL_UNSIGNED_INT, nil)
+      flatMesh.draw()
 
     use simpleShader:
-      camera.updateViewUniform(simpleViewLoc)
-      glUniformMatrix4fv(simpleProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
-      glUniform3fv(simpleColorLoc, 1, sunColor[0].addr)
+      simpleViewLoc.updateWith(lookAtMatrix)
+      simpleProjectionLoc.updateWith(projectionMatrix)
+      simpleColorLoc.updateWith(sunColor)
 
       use sunVao:
         sunMatrix.setTo(move(sunPosition))
-        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
+        simpleModelLoc.updateWith(sunMatrix)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
         sunPosition.x += flatMeshOffset
         sunMatrix.setTo(move(sunPosition))
-        glUniformMatrix4fv(simpleModelLoc, 1, GL_FALSE, sunMatrix[0].addr)
+        simpleModelLoc.updateWith(sunMatrix)
         glDrawArrays(GL_TRIANGLES, 0, cubeData.len.GLsizei)
 
     use mandelShader:
-      camera.updateViewUniform(mandelViewLoc)
-      glUniformMatrix4fv(mandelProjectionLoc, 1, GL_FALSE, projectionMatrix[0].addr)
+      mandelViewLoc.updateWith(lookAtMatrix)
+      mandelProjectionLoc.updateWith(projectionMatrix)
 
       use planeVao:
         modelMatrix.setTo(scale(1000.0) & move(0.0, 0.0, -3000.0))
-        glUniformMatrix4fv(mandelModelLoc, 1, GL_FALSE, modelMatrix[0].addr)
+        mandelModelLoc.updateWith(modelMatrix)
         glDrawArrays(GL_TRIANGLES, 0, planeData.len.GLsizei)
 
     glSwapWindow(window)
