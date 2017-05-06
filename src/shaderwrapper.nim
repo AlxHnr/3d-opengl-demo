@@ -29,17 +29,18 @@ proc tryUpdateUniforms(shader: var ShaderWrapper, program: ShaderProgram) =
 
 proc loadFlatMeshShader*(): BasicLightShader =
   result.vertexShader = loadVertexShader("shader/flatMesh.vert")
-  result.vertexShaderSourceTime =
-    result.vertexShader.filePath.getLastModificationTime()
 
   onFailure destroy result.vertexShader:
+    result.vertexShaderSourceTime =
+      result.vertexShader.filePath.getLastModificationTime()
     result.fragmentShader = loadFragmentShader("shader/flatMesh.frag")
-    result.fragmentShaderSourceTime =
-      result.fragmentShader.filePath.getLastModificationTime()
 
     onFailure destroy result.fragmentShader:
+      result.fragmentShaderSourceTime =
+        result.fragmentShader.filePath.getLastModificationTime()
       result.program =
         linkShaderProgram(result.vertexShader, result.fragmentShader)
+
       onFailure destroy result.program:
         result.tryUpdateUniforms(result.program)
 
@@ -62,13 +63,12 @@ proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
     fragmentHasChanged = shader.fragmentShaderSourceTime < fragmentSourceTime
 
   if vertexHasChanged or fragmentHasChanged:
+    shader.vertexShaderSourceTime = vertexSourceTime
+    shader.fragmentShaderSourceTime = fragmentSourceTime
+
     try:
-      if vertexHasChanged:
-        shader.vertexShaderSourceTime = vertexSourceTime
-        shader.vertexShader.recompile()
-      if fragmentHasChanged:
-        shader.fragmentShaderSourceTime = fragmentSourceTime
-        shader.fragmentShader.recompile()
+      if vertexHasChanged: shader.vertexShader.recompile()
+      if fragmentHasChanged: shader.fragmentShader.recompile()
 
       let newProgram =
         linkShaderProgram(shader.vertexShader, shader.fragmentShader)
