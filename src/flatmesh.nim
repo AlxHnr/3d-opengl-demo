@@ -7,8 +7,10 @@ type
     vao: VertexArrayObject
     indexCount: int
 
-proc initFlatMesh*(subdivisions: Positive): FlatMesh =
-  let subdivisionsPrev = subdivisions - 1
+proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
+  let
+    subdivisions = subdivisions.int
+    subdivisionsPrev = subdivisions - 1
   result.indexCount = subdivisionsPrev * subdivisionsPrev * 6
 
   var
