@@ -13,6 +13,20 @@ type
   LightShaderWrapper = BasicLightShader
   ShaderWrapper = BasicLightShader
 
+proc tryUpdateUniforms(shader: var ShaderWrapper, program: ShaderProgram) =
+  let
+    modelUniform = program.getUniformLocationMat4("model")
+    viewUniform = program.getUniformLocationMat4("view")
+    projectionUniform = program.getUniformLocationMat4("projection")
+    lightPositionUniform = program.getUniformLocationVec3("lightPosition")
+    lightColorUniform = program.getUniformLocationVec3("lightColor")
+
+  shader.model = modelUniform
+  shader.view = viewUniform
+  shader.projection = projectionUniform
+  shader.lightPosition = lightPositionUniform
+  shader.lightColor = lightColorUniform
+
 proc loadFlatMeshShader*(): BasicLightShader =
   result.vertexShader = loadVertexShader("shader/flatMesh.vert")
   result.vertexShaderSourceTime =
@@ -27,14 +41,7 @@ proc loadFlatMeshShader*(): BasicLightShader =
       result.program =
         linkShaderProgram(result.vertexShader, result.fragmentShader)
       onFailure destroy result.program:
-        result.model = result.program.getUniformLocationMat4("model")
-        result.view = result.program.getUniformLocationMat4("view")
-        result.projection =
-          result.program.getUniformLocationMat4("projection")
-        result.lightPosition =
-          result.program.getUniformLocationVec3("lightPosition")
-        result.lightColor =
-          result.program.getUniformLocationVec3("lightColor")
+        result.tryUpdateUniforms(result.program)
 
 proc destroy*(shader: ShaderWrapper) =
   shader.vertexShader.destroy()
@@ -45,7 +52,7 @@ template use*(shader: ShaderWrapper, body: untyped) =
   use shader.program:
     body
 
-proc checkAndReloadChanges*(shader: var ShaderWrapper): bool =
+proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
   let
     vertexSourceTime =
       shader.vertexShader.filePath.getLastModificationTime()
@@ -65,6 +72,10 @@ proc checkAndReloadChanges*(shader: var ShaderWrapper): bool =
 
       let newProgram =
         linkShaderProgram(shader.vertexShader, shader.fragmentShader)
+
+      onFailure destroy newProgram:
+        shader.tryUpdateUniforms(newProgram)
+
       shader.program.destroy()
       shader.program = newProgram
       result = true
@@ -72,7 +83,7 @@ proc checkAndReloadChanges*(shader: var ShaderWrapper): bool =
       echo getCurrentExceptionMsg()
 
 template tryReload*(shader: var ShaderWrapper, body: untyped) =
-  if shader.checkAndReloadChanges():
+  if shader.tryReload():
     use shader:
       body
 
