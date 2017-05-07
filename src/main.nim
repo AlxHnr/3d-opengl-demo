@@ -1,7 +1,8 @@
 import
   math, basic3d,
   sdl2, opengl,
-  globject, mathhelpers, camera, flatmesh, shaderwrapper, uniform
+  globject, mathhelpers, camera, flatmesh, shaderwrapper, uniform, use,
+  shader
 
 const
   windowW = 800
@@ -110,9 +111,9 @@ proc main(): bool =
   var flatMeshShader = loadFlatMeshShader()
   defer: flatMeshShader.destroy()
   use flatMeshShader:
-    flatMeshShader.projection.updateWith(projectionMatrix)
-    flatMeshShader.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-    flatMeshShader.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
+    U.projection.updateWith(projectionMatrix)
+    U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+    U.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
 
   # Main loop.
   var
@@ -148,8 +149,7 @@ proc main(): bool =
               glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
             wireframe = not wireframe
           else:
-            # Ignore most keys.
-            discard nil
+            discard "Ignore most keys"
 
     let movementSpeed =
       if keys[SDL_SCANCODE_SPACE.uint8] == 1:
@@ -175,10 +175,10 @@ proc main(): bool =
     # Reload shaders.
     if shaderReloadCounter == 40:
       shaderReloadCounter = 0
-      flatMeshShader.tryReload:
-        flatMeshShader.projection.updateWith(projectionMatrix)
-        flatMeshShader.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-        flatMeshShader.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
+      flatMeshShader.afterReload:
+        U.projection.updateWith(projectionMatrix)
+        U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+        U.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
     else:
       shaderReloadCounter += 1
 
@@ -186,8 +186,8 @@ proc main(): bool =
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
     use flatMeshShader:
-      flatMeshShader.view.updateWith(lookAtMatrix)
-      flatMeshShader.model.updateWith(scale(1000.0))
+      U.view.updateWith(lookAtMatrix)
+      U.model.updateWith(scale(1000.0))
       flatMesh.draw()
 
     glSwapWindow(window)

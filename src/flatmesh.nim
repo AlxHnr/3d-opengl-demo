@@ -1,4 +1,4 @@
-import globject, onfailure, opengl
+import opengl, globject, use, onfailure
 
 type
   FlatMesh = object

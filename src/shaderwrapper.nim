@@ -1,31 +1,24 @@
 import os, times, shader, uniform, onfailure
 
 type
+  UniformLocations = object
+    model, view, projection: UniformLocationMat4
+    lightPosition, lightColor: UniformLocationVec3
   BasicLightShader = object
     vertexShader: VertexShader
     vertexShaderSourceTime: Time
     fragmentShader: FragmentShader
     fragmentShaderSourceTime: Time
     program: ShaderProgram
-    model, view, projection: UniformLocationMat4
-    lightPosition, lightColor: UniformLocationVec3
-  MVPShaderWrapper = BasicLightShader
-  LightShaderWrapper = BasicLightShader
-  ShaderWrapper = BasicLightShader
+    uniforms: UniformLocations
+  ShaderWrapper* = BasicLightShader
 
-proc tryUpdateUniforms(shader: var ShaderWrapper, program: ShaderProgram) =
-  let
-    modelUniform = program.getUniformLocationMat4("model")
-    viewUniform = program.getUniformLocationMat4("view")
-    projectionUniform = program.getUniformLocationMat4("projection")
-    lightPositionUniform = program.getUniformLocationVec3("lightPosition")
-    lightColorUniform = program.getUniformLocationVec3("lightColor")
-
-  shader.model = modelUniform
-  shader.view = viewUniform
-  shader.projection = projectionUniform
-  shader.lightPosition = lightPositionUniform
-  shader.lightColor = lightColorUniform
+proc resolveUniformLocations(program: ShaderProgram): UniformLocations =
+  result.model = program.getUniformLocationMat4("model")
+  result.view = program.getUniformLocationMat4("view")
+  result.projection = program.getUniformLocationMat4("projection")
+  result.lightPosition = program.getUniformLocationVec3("lightPosition")
+  result.lightColor = program.getUniformLocationVec3("lightColor")
 
 proc loadFlatMeshShader*(): BasicLightShader =
   result.vertexShader = loadVertexShader("shader/flatMesh.vert")
@@ -42,16 +35,12 @@ proc loadFlatMeshShader*(): BasicLightShader =
         linkShaderProgram(result.vertexShader, result.fragmentShader)
 
       onFailure destroy result.program:
-        result.tryUpdateUniforms(result.program)
+        result.uniforms = result.program.resolveUniformLocations()
 
 proc destroy*(shader: ShaderWrapper) =
   shader.vertexShader.destroy()
   shader.fragmentShader.destroy()
   shader.program.destroy()
-
-template use*(shader: ShaderWrapper, body: untyped) =
-  use shader.program:
-    body
 
 proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
   let
@@ -74,7 +63,7 @@ proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
         linkShaderProgram(shader.vertexShader, shader.fragmentShader)
 
       onFailure destroy newProgram:
-        shader.tryUpdateUniforms(newProgram)
+        shader.uniforms = newProgram.resolveUniformLocations()
 
       shader.program.destroy()
       shader.program = newProgram
@@ -82,13 +71,13 @@ proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
     except ShaderError:
       echo getCurrentExceptionMsg()
 
-template tryReload*(shader: var ShaderWrapper, body: untyped) =
-  if shader.tryReload():
-    use shader:
-      body
+template declareShaderWrapperUniformLet*(shader: ShaderWrapper) =
+  let `U` {.inject.} = shader.uniforms
+template declareUseBodyWithShader*(shader: ShaderWrapper, body: typed) =
+  use shader.program: body
 
-proc model*(w: MVPShaderWrapper): UniformLocationMat4 = w.model
-proc view*(w: MVPShaderWrapper): UniformLocationMat4 = w.view
-proc projection*(w: MVPShaderWrapper): UniformLocationMat4 = w.projection
-proc lightPosition*(w: LightShaderWrapper): UniformLocationVec3 = w.lightPosition
-proc lightColor*(w: LightShaderWrapper): UniformLocationVec3 = w.lightColor
+proc model*(u: UniformLocations): auto = u.model
+proc view*(u: UniformLocations): auto = u.view
+proc projection*(u: UniformLocations): auto = u.projection
+proc lightPosition*(u: UniformLocations): auto = u.lightPosition
+proc lightColor*(u: UniformLocations): auto = u.lightColor

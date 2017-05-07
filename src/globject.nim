@@ -43,13 +43,3 @@ proc initVertexArrayObject*(): VertexArrayObject =
 proc destroy*(vao: VertexArrayObject) =
   var vao = vao.GLuint
   glDeleteVertexArrays(1, vao.addr)
-
-template use*(vao: VertexArrayObject, body: untyped) =
-  var previousVao: GLint
-  glGetIntegerv(GL_VERTEX_ARRAY_BINDING, previousVao.addr)
-
-  glBindVertexArray(vao.GLuint)
-  try:
-    body
-  finally:
-    glBindVertexArray(previousVao.GLuint)
