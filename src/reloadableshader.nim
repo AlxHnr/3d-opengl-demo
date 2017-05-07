@@ -1,7 +1,7 @@
 import os, times, shader, onfailure
 
 type
-  OnShaderReloadProc = proc(program: ShaderProgram)
+  ShaderProgramProc = proc(program: ShaderProgram)
   ReloadableShader* = object
     vertexShader: VertexShader
     vertexShaderSourceTime: Time
@@ -9,8 +9,10 @@ type
     fragmentShaderSourceTime: Time
     program: ShaderProgram
 
+proc ignoreArgs(program: ShaderProgram) {.procvar.} = discard program
+
 proc initReloadableShader*(vertexSourcePath, fragmentSourcePath: string,
-                           onShaderReload: OnShaderReloadProc):
+                           onShaderReload: ShaderProgramProc = ignoreArgs):
                            ReloadableShader =
   result.vertexShader = loadVertexShader(vertexSourcePath)
 
@@ -34,7 +36,7 @@ proc destroy*(shader: ReloadableShader) =
   shader.program.destroy()
 
 proc tryReload*(shader: var ReloadableShader,
-                onShaderReload: OnShaderReloadProc):
+                onShaderReload: ShaderProgramProc = ignoreArgs):
                 bool {.discardable.} =
   let
     vertexSourceTime =
