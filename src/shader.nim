@@ -16,7 +16,7 @@ proc typeName(shader: FragmentShader): string = "fragment"
 
 proc recompile*(shader: ShaderObject, preincludes: varargs[string]) =
   var sources = @preincludes
-  sources.add(readFile(shader.filePath).string)
+  sources.add(readFile(shader.filePath))
 
   let stringArray = allocCStringArray(sources)
   defer: deallocCStringArray(stringArray)
