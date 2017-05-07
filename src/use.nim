@@ -1,4 +1,4 @@
-import opengl, globject, shader, shaderwrapper
+import opengl, globject, shader, reloadableshader, shaderwrapper
 
 template use*(vao: VertexArrayObject, body: untyped) =
   var previousVao: GLint
@@ -19,6 +19,9 @@ template use*(program: ShaderProgram, body: untyped) =
     body
   finally:
     glUseProgram(previousProgram.GLuint)
+
+template use*(shader: ReloadableShader, body: untyped) =
+  block: declareUseBodyWithShader(shader, body)
 
 template use*(shader: ShaderWrapper, body: untyped) =
   block:
