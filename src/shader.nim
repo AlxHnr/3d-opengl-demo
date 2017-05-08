@@ -1,18 +1,18 @@
 import basic3d, strutils, opengl, mathhelpers, onfailure
 
 type
-  VertexShader* = object
+  VertexShaderObject* = object
     id: GLuint
     filePath: string
-  FragmentShader* = object
+  FragmentShaderObject* = object
     id: GLuint
     filePath: string
-  ShaderObject* = VertexShader | FragmentShader
+  ShaderObject* = VertexShaderObject | FragmentShaderObject
   ShaderProgram* = distinct GLuint
   ShaderError* = object of Exception
 
-proc typeName(shader: VertexShader): string = "vertex"
-proc typeName(shader: FragmentShader): string = "fragment"
+proc typeName(shader: VertexShaderObject): string = "vertex"
+proc typeName(shader: FragmentShaderObject): string = "fragment"
 
 proc recompile*(shader: ShaderObject, preincludes: varargs[string]) =
   var sources = @preincludes
@@ -49,10 +49,10 @@ proc initShader(shader: var ShaderObject,
   onFailure glDeleteShader(shader.id):
     shader.recompile()
 
-proc loadVertexShader*(filePath: string): VertexShader =
+proc loadVertexShaderObject*(filePath: string): VertexShaderObject =
   initShader(result, filePath, GL_VERTEX_SHADER)
 
-proc loadFragmentShader*(filePath: string): FragmentShader =
+proc loadFragmentShaderObject*(filePath: string): FragmentShaderObject =
   initShader(result, filePath, GL_FRAGMENT_SHADER)
 
 proc destroy*(shader: ShaderObject) =
@@ -61,17 +61,18 @@ proc destroy*(shader: ShaderObject) =
 proc filePath*(shader: ShaderObject): string =
   shader.filePath
 
-proc linkShaderProgram*(vertexShader: VertexShader,
-                        fragmentShader: FragmentShader): ShaderProgram =
+proc linkShaderProgram*(vertexShaderObject: VertexShaderObject,
+                        fragmentShaderObject: FragmentShaderObject):
+                        ShaderProgram =
   let program = glCreateProgram()
   result = program.ShaderProgram
 
   onFailure glDeleteProgram(program):
-    glAttachShader(program, vertexShader.id)
-    glAttachShader(program, fragmentShader.id)
+    glAttachShader(program, vertexShaderObject.id)
+    glAttachShader(program, fragmentShaderObject.id)
     glLinkProgram(program)
-    glDetachShader(program, vertexShader.id)
-    glDetachShader(program, fragmentShader.id)
+    glDetachShader(program, vertexShaderObject.id)
+    glDetachShader(program, fragmentShaderObject.id)
 
     var programiv: GLint
     glGetProgramiv(program, GL_LINK_STATUS, programiv.addr)

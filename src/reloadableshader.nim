@@ -3,9 +3,9 @@ import os, times, shader, onfailure
 type
   ShaderProgramProc = proc(program: ShaderProgram)
   ReloadableShader* = object
-    vertexShader: VertexShader
+    vertexShaderObject: VertexShaderObject
     vertexShaderSourceTime: Time
-    fragmentShader: FragmentShader
+    fragmentShaderObject: FragmentShaderObject
     fragmentShaderSourceTime: Time
     program: ShaderProgram
 
@@ -14,25 +14,27 @@ proc ignoreArgs(program: ShaderProgram) {.procvar.} = discard program
 proc initReloadableShader*(vertexSourcePath, fragmentSourcePath: string,
                            onShaderReload: ShaderProgramProc = ignoreArgs):
                            ReloadableShader =
-  result.vertexShader = loadVertexShader(vertexSourcePath)
+  result.vertexShaderObject = loadVertexShaderObject(vertexSourcePath)
 
-  onFailure destroy result.vertexShader:
+  onFailure destroy result.vertexShaderObject:
     result.vertexShaderSourceTime =
-      result.vertexShader.filePath.getLastModificationTime()
-    result.fragmentShader = loadFragmentShader(fragmentSourcePath)
+      result.vertexShaderObject.filePath.getLastModificationTime()
+    result.fragmentShaderObject =
+      loadFragmentShaderObject(fragmentSourcePath)
 
-    onFailure destroy result.fragmentShader:
+    onFailure destroy result.fragmentShaderObject:
       result.fragmentShaderSourceTime =
-        result.fragmentShader.filePath.getLastModificationTime()
+        result.fragmentShaderObject.filePath.getLastModificationTime()
       result.program =
-        linkShaderProgram(result.vertexShader, result.fragmentShader)
+        linkShaderProgram(result.vertexShaderObject,
+                          result.fragmentShaderObject)
 
       onFailure destroy result.program:
         onShaderReload(result.program)
 
 proc destroy*(shader: ReloadableShader) =
-  shader.vertexShader.destroy()
-  shader.fragmentShader.destroy()
+  shader.vertexShaderObject.destroy()
+  shader.fragmentShaderObject.destroy()
   shader.program.destroy()
 
 proc tryReload*(shader: var ReloadableShader,
@@ -40,9 +42,9 @@ proc tryReload*(shader: var ReloadableShader,
                 bool {.discardable.} =
   let
     vertexSourceTime =
-      shader.vertexShader.filePath.getLastModificationTime()
+      shader.vertexShaderObject.filePath.getLastModificationTime()
     fragmentSourceTime =
-      shader.fragmentShader.filePath.getLastModificationTime()
+      shader.fragmentShaderObject.filePath.getLastModificationTime()
     vertexHasChanged = shader.vertexShaderSourceTime < vertexSourceTime
     fragmentHasChanged = shader.fragmentShaderSourceTime < fragmentSourceTime
 
@@ -51,11 +53,11 @@ proc tryReload*(shader: var ReloadableShader,
     shader.fragmentShaderSourceTime = fragmentSourceTime
 
     try:
-      if vertexHasChanged: shader.vertexShader.recompile()
-      if fragmentHasChanged: shader.fragmentShader.recompile()
+      if vertexHasChanged: shader.vertexShaderObject.recompile()
+      if fragmentHasChanged: shader.fragmentShaderObject.recompile()
 
-      let newProgram =
-        linkShaderProgram(shader.vertexShader, shader.fragmentShader)
+      let newProgram = linkShaderProgram(shader.vertexShaderObject,
+                                         shader.fragmentShaderObject)
 
       onFailure destroy newProgram:
         onShaderReload(newProgram)
