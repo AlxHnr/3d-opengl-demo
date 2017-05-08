@@ -1,4 +1,4 @@
-import os, times, shader, onfailure
+import os, times, shaderutils, onfailure
 
 type
   ShaderProgramProc = proc(program: ShaderProgram)

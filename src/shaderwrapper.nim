@@ -1,4 +1,4 @@
-import os, times, shader, reloadableshader, uniform, onfailure
+import os, times, shaderutils, reloadableshader, uniform, onfailure
 
 type
   UniformLocations = object

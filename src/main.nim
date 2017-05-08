@@ -1,8 +1,7 @@
 import
   math, basic3d,
   sdl2, opengl,
-  globject, mathhelpers, camera, flatmesh, shaderwrapper, uniform, use,
-  shader
+  globject, mathhelpers, camera, flatmesh, shaderwrapper, uniform, use
 
 const
   windowW = 800

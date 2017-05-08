@@ -1,4 +1,4 @@
-import basic3d, opengl, shader, mathhelpers
+import basic3d, opengl, shaderutils, mathhelpers
 
 type
   UniformLocationFloat* = distinct GLuint

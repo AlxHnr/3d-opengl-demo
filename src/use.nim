@@ -1,4 +1,4 @@
-import opengl, globject, shader, reloadableshader, shaderwrapper
+import opengl, globject, shaderutils, reloadableshader, shaderwrapper
 
 template use*(vao: VertexArrayObject, body: untyped) =
   var previousVao: GLint
