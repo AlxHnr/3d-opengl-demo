@@ -1,12 +1,8 @@
-import basic3d, strutils, opengl, mathhelpers, onfailure
+import sequtils, basic3d, strutils, opengl, mathhelpers, onfailure
 
 type
-  VertexShaderObject* = object
-    id: GLuint
-    filePath: string
-  FragmentShaderObject* = object
-    id: GLuint
-    filePath: string
+  VertexShaderObject* = distinct GLuint
+  FragmentShaderObject* = distinct GLuint
   ShaderObject* = VertexShaderObject | FragmentShaderObject
   ShaderProgram* = distinct GLuint
   ShaderError* = object of Exception
@@ -14,52 +10,61 @@ type
 proc typeName(shader: VertexShaderObject): string = "vertex"
 proc typeName(shader: FragmentShaderObject): string = "fragment"
 
-proc recompile*(shader: ShaderObject, preincludes: varargs[string]) =
-  var sources = @preincludes
-  sources.add(readFile(shader.filePath))
+proc loadSources(paths: openArray[string], typeName: string):
+                 seq[TaintedString] =
+  if paths.len == 0:
+    let msg = "no " & typeName & " shader source files specified"
+    raise newException(ShaderError, msg)
+
+  try:
+    result = paths.map do (path: string) -> TaintedString: path.readFile
+  except IOError:
+    let msg = typeName & " shader: " & getCurrentExceptionMsg()
+    raise newException(ShaderError, msg)
+
+proc recompile*(shader: ShaderObject, paths: openArray[string]) =
+  let
+    sources = paths.loadSources(shader.typeName)
+    shaderID = shader.GLuint
 
   let stringArray = allocCStringArray(sources)
   defer: deallocCStringArray(stringArray)
 
-  glShaderSource(shader.id, sources.len.GLsizei, stringArray, nil)
-  glCompileShader(shader.id)
+  glShaderSource(shaderID, sources.len.GLsizei, stringArray, nil)
+  glCompileShader(shaderID)
 
   var shaderiv: GLint
-  glGetShaderiv(shader.id, GL_COMPILE_STATUS, shaderiv.addr)
+  glGetShaderiv(shaderID, GL_COMPILE_STATUS, shaderiv.addr)
   if shaderiv != GL_TRUE.GLint:
-    glGetShaderiv(shader.id, GL_INFO_LOG_LENGTH, shaderiv.addr)
+    glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, shaderiv.addr)
     var shaderInfo = cast[ptr GLchar](alloc(shaderiv))
     defer: dealloc(shaderInfo)
 
-    glGetShaderInfoLog(shader.id, shaderiv.GLsizei, nil, shaderInfo)
+    glGetShaderInfoLog(shaderID, shaderiv.GLsizei, nil, shaderInfo)
 
     let msg = shader.typeName & " shader: \"" &
-              shader.filePath & "\": " & $shaderInfo
+              paths[paths.high] & "\": " & $shaderInfo
     raise newException(ShaderError, msg)
 
 proc initShader(shader: var ShaderObject,
-                filePath: string,
+                paths: openArray[string],
                 shaderType: GLenum) =
-  if not filePath.endsWith("." & shader.typeName[0..3]):
-    let msg = shader.typeName & " shader: \"" & filePath & "\""
-    raise newException(ShaderError, "wrong file extension for a " & msg)
+  shader = glCreateShader(shaderType).ShaderObject
+  onFailure glDeleteShader(shader.GLuint):
+    shader.recompile(paths)
 
-  shader.filePath = filePath
-  shader.id = glCreateShader(shaderType)
-  onFailure glDeleteShader(shader.id):
-    shader.recompile()
+proc initVertexShaderObject*(paths: openArray[string]):
+                             VertexShaderObject =
+  initShader(result, paths, GL_VERTEX_SHADER)
 
-proc loadVertexShaderObject*(filePath: string): VertexShaderObject =
-  initShader(result, filePath, GL_VERTEX_SHADER)
+proc initFragmentShaderObject*(paths: openArray[string]):
+                               FragmentShaderObject =
+  initShader(result, paths, GL_FRAGMENT_SHADER)
 
-proc loadFragmentShaderObject*(filePath: string): FragmentShaderObject =
-  initShader(result, filePath, GL_FRAGMENT_SHADER)
-
-proc destroy*(shader: ShaderObject) =
-  glDeleteShader(shader.id)
-
-proc filePath*(shader: ShaderObject): string =
-  shader.filePath
+proc destroy*(shader: VertexShaderObject) =
+  glDeleteShader(shader.GLuint)
+proc destroy*(shader: FragmentShaderObject) =
+  glDeleteShader(shader.GLuint)
 
 proc linkShaderProgram*(vertexShaderObject: VertexShaderObject,
                         fragmentShaderObject: FragmentShaderObject):
@@ -68,11 +73,11 @@ proc linkShaderProgram*(vertexShaderObject: VertexShaderObject,
   result = program.ShaderProgram
 
   onFailure glDeleteProgram(program):
-    glAttachShader(program, vertexShaderObject.id)
-    glAttachShader(program, fragmentShaderObject.id)
+    glAttachShader(program, vertexShaderObject.GLuint)
+    glAttachShader(program, fragmentShaderObject.GLuint)
     glLinkProgram(program)
-    glDetachShader(program, vertexShaderObject.id)
-    glDetachShader(program, fragmentShaderObject.id)
+    glDetachShader(program, vertexShaderObject.GLuint)
+    glDetachShader(program, fragmentShaderObject.GLuint)
 
     var programiv: GLint
     glGetProgramiv(program, GL_LINK_STATUS, programiv.addr)

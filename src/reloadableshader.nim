@@ -1,33 +1,40 @@
-import os, times, shaderutils, onfailure
+import os, sequtils, times, shaderutils, onfailure
 
 type
   ShaderProgramProc = proc(program: ShaderProgram)
+  SourcePathInfo = tuple
+    path: string
+    time: Time
+  SourcePathInfoSeq = seq[SourcePathInfo]
   ReloadableShader* = object
     vertexShaderObject: VertexShaderObject
-    vertexShaderSourceTime: Time
+    vertexSourcePathInfos: SourcePathInfoSeq
     fragmentShaderObject: FragmentShaderObject
-    fragmentShaderSourceTime: Time
+    fragmentSourcePathInfos: SourcePathInfoSeq
     program: ShaderProgram
 
 proc ignoreArgs(program: ShaderProgram) {.procvar.} = discard program
+proc init(infoSeq: var SourcePathInfoSeq, paths: openArray[string]) =
+  infoSeq = newSeq[SourcePathInfo](paths.len)
+  for i, path in paths:
+    infoSeq[i].path = path
+    infoSeq[i].time = path.getLastModificationTime()
 
-proc initReloadableShader*(vertexSourcePath, fragmentSourcePath: string,
+proc initReloadableShader*(vertexSourcePaths: openArray[string],
+                           fragmentSourcePaths: openArray[string],
                            onShaderReload: ShaderProgramProc = ignoreArgs):
                            ReloadableShader =
-  result.vertexShaderObject = loadVertexShaderObject(vertexSourcePath)
+  result.vertexShaderObject = initVertexShaderObject(vertexSourcePaths)
 
   onFailure destroy result.vertexShaderObject:
-    result.vertexShaderSourceTime =
-      result.vertexShaderObject.filePath.getLastModificationTime()
+    result.vertexSourcePathInfos.init(vertexSourcePaths)
     result.fragmentShaderObject =
-      loadFragmentShaderObject(fragmentSourcePath)
+      initFragmentShaderObject(fragmentSourcePaths)
 
     onFailure destroy result.fragmentShaderObject:
-      result.fragmentShaderSourceTime =
-        result.fragmentShaderObject.filePath.getLastModificationTime()
-      result.program =
-        linkShaderProgram(result.vertexShaderObject,
-                          result.fragmentShaderObject)
+      result.fragmentSourcePathInfos.init(fragmentSourcePaths)
+      result.program = linkShaderProgram(result.vertexShaderObject,
+                                         result.fragmentShaderObject)
 
       onFailure destroy result.program:
         onShaderReload(result.program)
@@ -37,24 +44,32 @@ proc destroy*(shader: ReloadableShader) =
   shader.fragmentShaderObject.destroy()
   shader.program.destroy()
 
+proc updateChangeTime(infoSeq: var SourcePathInfoSeq): bool =
+  for i in 0..infoSeq.high:
+    let time = infoSeq[i].path.getLastModificationTime()
+    if time != infoSeq[i].time:
+      infoSeq[i].time = time
+      result = true
+
+proc gatherSources(infoSeq: SourcePathInfoSeq): seq[string] =
+  infoSeq.map do (info: SourcePathInfo) -> string: info.path
+
 proc tryReload*(shader: var ReloadableShader,
                 onShaderReload: ShaderProgramProc = ignoreArgs):
                 bool {.discardable.} =
   let
-    vertexSourceTime =
-      shader.vertexShaderObject.filePath.getLastModificationTime()
-    fragmentSourceTime =
-      shader.fragmentShaderObject.filePath.getLastModificationTime()
-    vertexHasChanged = shader.vertexShaderSourceTime < vertexSourceTime
-    fragmentHasChanged = shader.fragmentShaderSourceTime < fragmentSourceTime
+    vertexHasChanged = shader.vertexSourcePathInfos.updateChangeTime()
+    fragmentHasChanged = shader.fragmentSourcePathInfos.updateChangeTime()
 
   if vertexHasChanged or fragmentHasChanged:
-    shader.vertexShaderSourceTime = vertexSourceTime
-    shader.fragmentShaderSourceTime = fragmentSourceTime
-
     try:
-      if vertexHasChanged: shader.vertexShaderObject.recompile()
-      if fragmentHasChanged: shader.fragmentShaderObject.recompile()
+      if vertexHasChanged:
+        let vertexSources = shader.vertexSourcePathInfos.gatherSources()
+        shader.vertexShaderObject.recompile(vertexSources)
+
+      if fragmentHasChanged:
+        let fragmentSources = shader.fragmentSourcePathInfos.gatherSources()
+        shader.fragmentShaderObject.recompile(fragmentSources)
 
       let newProgram = linkShaderProgram(shader.vertexShaderObject,
                                          shader.fragmentShaderObject)
