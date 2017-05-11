@@ -11,26 +11,27 @@ proc typeName(shader: VertexShaderObject): string = "vertex"
 proc typeName(shader: FragmentShaderObject): string = "fragment"
 
 proc loadSources(paths: openArray[string], typeName: string):
-                 seq[TaintedString] =
+                 TaintedString =
   if paths.len == 0:
     let msg = "no " & typeName & " shader source files specified"
     raise newException(ShaderError, msg)
 
   try:
-    result = paths.map do (path: string) -> TaintedString: path.readFile
+    result = "#version 330 core\n"
+    for path in paths: result.add(path.readFile)
   except IOError:
     let msg = typeName & " shader: " & getCurrentExceptionMsg()
     raise newException(ShaderError, msg)
 
 proc recompile*(shader: ShaderObject, paths: openArray[string]) =
   let
-    sources = paths.loadSources(shader.typeName)
+    source = paths.loadSources(shader.typeName)
     shaderID = shader.GLuint
 
-  let stringArray = allocCStringArray(sources)
+  let stringArray = allocCStringArray([source])
   defer: deallocCStringArray(stringArray)
 
-  glShaderSource(shaderID, sources.len.GLsizei, stringArray, nil)
+  glShaderSource(shaderID, 1, stringArray, nil)
   glCompileShader(shaderID)
 
   var shaderiv: GLint

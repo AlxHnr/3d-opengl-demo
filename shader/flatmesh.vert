@@ -1,5 +1,3 @@
-#version 330 core
-
 layout (location = 0) in vec3 position;
 
 uniform mat4 model;
@@ -7,29 +5,16 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 lightPosition;
 
-out vec3 viewCoord, lightViewPosition, normal;
-
-vec3 getHeightVec(float x, float z)
-{
-  return vec3(x, sin(x * 5) *
-                 cos(z * 5)/5.0, z);
-}
+out vec3 viewCoord, lightViewPosition, fragPosition;
 
 void main(void)
 {
-  vec3 a = getHeightVec(position.x, position.z);
-  vec3 b = getHeightVec(position.x + 0.05, position.z);
-  vec3 c = getHeightVec(position.x, position.z + 0.05);
-  vec3 baseNormal = normalize(cross(b - a, c - a));
-
-  mat4 modelView = view * model;
-  vec4 positionView = modelView * vec4(a, 1.0);
+  vec4 positionView = view * model *
+    vec4(getHeightVec(position.x, position.z), 1.0);
 
   viewCoord = positionView.xyz;
   lightViewPosition = (view * vec4(lightPosition, 1.0)).xyz;
 
-  /* Compute normals. */
-  normal = normalize(mat3(transpose(inverse(modelView))) * baseNormal);
-
+  fragPosition = position;
   gl_Position = projection * positionView;
 }

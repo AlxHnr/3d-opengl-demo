@@ -26,8 +26,10 @@ template buildCaptureUniformProc(onShaderReload: untyped,
 proc loadFlatMeshShader*(): BasicLightShader =
   buildCaptureUniformProc(onShaderReload, uniforms)
   result.reloadableShader =
-    initReloadableShader(["shader/flatmesh.vert"],
-                         ["shader/flatmesh.frag"],
+    initReloadableShader(["shader/height.vert",
+                          "shader/flatmesh.vert"],
+                         ["shader/height.vert",
+                          "shader/flatmesh.frag"],
                          onShaderReload)
   result.uniforms = uniforms
 
