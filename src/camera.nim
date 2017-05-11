@@ -1,4 +1,4 @@
-import math, basic3d, mathhelpers
+import math, basic3d
 
 type
   Camera = object
@@ -42,22 +42,27 @@ proc yawPitch*(camera: var Camera; yaw, pitch: float) =
 
   camera.recomputeValues()
 
-proc getLookAtMatrix*(camera: Camera): Matrix4 =
+proc getLookAtMatrix*(camera: Camera): Matrix3d =
   let invertedPosition = -camera.position
 
-  result[0] = camera.right.x
-  result[1] = camera.up.x
-  result[2] = camera.direction.x
+  matrix3d(
+    camera.right.x,
+    camera.up.x,
+    camera.direction.x,
+    0.0,
 
-  result[4] = camera.right.y
-  result[5] = camera.up.y
-  result[6] = camera.direction.y
+    camera.right.y,
+    camera.up.y,
+    camera.direction.y,
+    0.0,
 
-  result[8] = camera.right.z
-  result[9] = camera.up.z
-  result[10] = camera.direction.z
+    camera.right.z,
+    camera.up.z,
+    camera.direction.z,
+    0.0,
 
-  result[12] = dot(camera.right, invertedPosition)
-  result[13] = dot(camera.up, invertedPosition)
-  result[14] = dot(camera.direction, invertedPosition)
-  result[15] = 1.0
+    dot(camera.right, invertedPosition),
+    dot(camera.up, invertedPosition),
+    dot(camera.direction, invertedPosition),
+    1.0
+  )
