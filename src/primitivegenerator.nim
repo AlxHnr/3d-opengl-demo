@@ -1,9 +1,13 @@
-import opengl, globject, use, onfailure
+import math, opengl, globject, use, onfailure
 
 type
   FlatMesh = object
     vertexVbo: ArrayBuffer
     indexVbo: ElementBuffer
+    vao: VertexArrayObject
+    indexCount: int
+  Circle = object
+    vbo: ArrayBuffer
     vao: VertexArrayObject
     indexCount: int
 
@@ -67,3 +71,39 @@ proc draw*(mesh: FlatMesh) =
     glDrawElements(GL_TRIANGLES,
                    mesh.indexCount.GLsizei,
                    GL_UNSIGNED_INT, nil)
+
+proc initCircle*(subdivisions: range[3..int.high]): Circle =
+  result.indexCount = subdivisions.int + 2
+  var vertices = newSeq[float](result.indexCount * 2)
+  vertices[0] = 0.0;
+  vertices[1] = 0.0;
+
+  vertices[2] = 1.0;
+  vertices[3] = 0.0;
+
+  vertices[vertices.high - 1] = 1.0;
+  vertices[vertices.high] = 0.0;
+
+  let step = 2.0 * PI/subdivisions.float
+  for i in 1..<subdivisions.int:
+    let angle = i.float * step
+    vertices[(i * 2) + 2] = cos(angle)
+    vertices[(i * 2) + 3] = sin(angle)
+
+  result.vbo = initArrayBuffer(vertices)
+  onFailure destroy result.vbo:
+    result.vao = initVertexArrayObject()
+
+    use result.vao:
+      result.vbo.bindBuffer()
+      glVertexAttribPointer(0, 2, cGL_Float, GL_FALSE,
+                            2 * GLfloat.sizeof, nil)
+      glEnableVertexAttribArray(0)
+
+proc destroy*(circle: Circle) =
+  circle.vbo.destroy()
+  circle.vao.destroy()
+
+proc draw*(circle: Circle) =
+  use circle.vao:
+    glDrawArrays(GL_TRIANGLE_FAN, 0, circle.indexCount.GLsizei)
