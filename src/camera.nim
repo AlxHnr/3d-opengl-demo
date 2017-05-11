@@ -42,6 +42,11 @@ proc yawPitch*(camera: var Camera; yaw, pitch: float) =
 
   camera.recomputeValues()
 
+proc position*(c: Camera): auto = c.position
+proc direction*(c: Camera): auto = c.direction
+proc right*(c: Camera): auto = c.right
+proc up*(c: Camera): auto = c.up
+
 proc getLookAtMatrix*(camera: Camera): Matrix3d =
   let invertedPosition = -camera.position
 
