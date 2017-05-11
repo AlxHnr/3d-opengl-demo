@@ -1,4 +1,4 @@
-import sequtils, basic3d, strutils, opengl, mathhelpers, onfailure
+import basic3d, strutils, opengl, mathhelpers, onfailure
 
 type
   VertexShaderObject* = distinct GLuint
