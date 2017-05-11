@@ -1,7 +1,6 @@
-import os, sequtils, times, shaderutils, onfailure
+import os, sequtils, times, shaderutils, shaderprogramproc, onfailure
 
 type
-  ShaderProgramProc = proc(program: ShaderProgram)
   SourcePathInfo = tuple
     path: string
     time: Time
@@ -13,7 +12,6 @@ type
     fragmentSourcePathInfos: SourcePathInfoSeq
     program: ShaderProgram
 
-proc ignoreArgs(program: ShaderProgram) {.procvar.} = discard program
 proc init(infoSeq: var SourcePathInfoSeq, paths: openArray[string]) =
   infoSeq = newSeq[SourcePathInfo](paths.len)
   for i, path in paths:
