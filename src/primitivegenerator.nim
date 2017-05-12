@@ -42,8 +42,8 @@ proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
     for x in 0..<subdivisionsPrev:
       let i = z6Sub + x * 6
       indices[i]     = z * subdivisions + x
-      indices[i + 1] = z * subdivisions + x + 1
-      indices[i + 2] = (z + 1) * subdivisions + x + 1
+      indices[i + 1] = (z + 1) * subdivisions + x + 1
+      indices[i + 2] = z * subdivisions + x + 1
       indices[i + 3] = z * subdivisions + x
       indices[i + 4] = (z + 1) * subdivisions + x
       indices[i + 5] = (z + 1) * subdivisions + x + 1
