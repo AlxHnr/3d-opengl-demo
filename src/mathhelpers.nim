@@ -1,7 +1,6 @@
 import math, basic3d, opengl
 
-type
-  Matrix4* = array[4 * 4, GLfloat]
+type Matrix4* = array[4 * 4, GLfloat]
 
 proc toGLfloatSeq*(a: varargs[float]): seq[GLfloat] =
   result = newSeq[GLfloat](a.len)
@@ -34,13 +33,13 @@ proc setTo*(buffer: var Matrix4, matrix: Matrix3d) =
   buffer[14] = matrix.tz
   buffer[15] = matrix.tw
 
-proc perspectiveMatrix*(fieldOfView, ratio, near, far: float): Matrix4 =
+proc perspectiveMatrix*(fieldOfView, ratio, near, far: float): Matrix3d =
   let
     f = 1.0/tan(fieldOfView/2.0)
     nearMinusFar = near - far
 
-  result[0] = f/ratio
-  result[5] = f
-  result[10] = (far + near)/nearMinusFar
-  result[11] = (2 * far * near)/nearMinusFar
-  result[14] = -1.0
+  result.ax = f/ratio
+  result.by = f
+  result.cz = (far + near)/nearMinusFar
+  result.cw = (2 * far * near)/nearMinusFar
+  result.tz = -1.0
