@@ -33,6 +33,21 @@ proc setTo*(buffer: var Matrix4, matrix: Matrix3d) =
   buffer[14] = matrix.tz
   buffer[15] = matrix.tw
 
+proc clearScaleRotation*(matrix: Matrix3d): Matrix3d =
+  result = matrix
+
+  result.ax = 1.0
+  result.ay = 0.0
+  result.az = 0.0
+
+  result.bx = 0.0
+  result.by = 1.0
+  result.bz = 0.0
+
+  result.cx = 0.0
+  result.cy = 0.0
+  result.cz = 1.0
+
 proc perspectiveMatrix*(fieldOfView, ratio, near, far: float): Matrix3d =
   let
     f = 1.0/tan(fieldOfView/2.0)

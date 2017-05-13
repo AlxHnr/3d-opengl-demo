@@ -2,7 +2,7 @@ import
   math, basic3d,
   sdl2, opengl,
   globject, mathhelpers, camera, primitivegenerator,
-  shaderwrapper, uniform, use
+  shader, shaderwrapper, uniform, use
 
 const
   windowW = 800
@@ -39,73 +39,18 @@ proc main(): bool =
   glClearColor(0, 0, 0, 0)
   glEnable(GL_DEPTH_TEST)
 
-  # Setup vertices.
-  let cubeData =
-    [
-      -1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
-       1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
-       1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
-       1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
-      -1.0,  1.0, -1.0,  0.0,  0.0, -1.0,
-      -1.0, -1.0, -1.0,  0.0,  0.0, -1.0,
-
-      -1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
-       1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
-       1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
-       1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
-      -1.0,  1.0,  1.0,  0.0,  0.0,  1.0,
-      -1.0, -1.0,  1.0,  0.0,  0.0,  1.0,
-
-      -1.0,  1.0,  1.0, -1.0,  0.0,  0.0,
-      -1.0,  1.0, -1.0, -1.0,  0.0,  0.0,
-      -1.0, -1.0, -1.0, -1.0,  0.0,  0.0,
-      -1.0, -1.0, -1.0, -1.0,  0.0,  0.0,
-      -1.0, -1.0,  1.0, -1.0,  0.0,  0.0,
-      -1.0,  1.0,  1.0, -1.0,  0.0,  0.0,
-
-       1.0,  1.0,  1.0,  1.0,  0.0,  0.0,
-       1.0,  1.0, -1.0,  1.0,  0.0,  0.0,
-       1.0, -1.0, -1.0,  1.0,  0.0,  0.0,
-       1.0, -1.0, -1.0,  1.0,  0.0,  0.0,
-       1.0, -1.0,  1.0,  1.0,  0.0,  0.0,
-       1.0,  1.0,  1.0,  1.0,  0.0,  0.0,
-
-      -1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
-       1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
-       1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
-       1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
-      -1.0, -1.0,  1.0,  0.0, -1.0,  0.0,
-      -1.0, -1.0, -1.0,  0.0, -1.0,  0.0,
-
-      -1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
-       1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
-       1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
-       1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
-      -1.0,  1.0,  1.0,  0.0,  1.0,  0.0,
-      -1.0,  1.0, -1.0,  0.0,  1.0,  0.0,
-    ]
-  let cubeBuffer = initArrayBuffer(cubeData)
-  defer: cubeBuffer.destroy()
-
   # Setup vaos.
-  let cubeVao = initVertexArrayObject()
-  defer: cubeVao.destroy()
-  use cubeVao:
-    cubeBuffer.bindBuffer()
-
-    glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof, nil)
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(1, 3, cGL_Float, GL_FALSE, 6 * GLfloat.sizeof,
-                          cast[pointer](3 * GLfloat.sizeof))
-    glEnableVertexAttribArray(1)
-
   let flatMesh = initFlatMesh(48)
   defer: flatMesh.destroy()
+
+  let sun = initCircle(18)
+  defer: sun.destroy()
+  var sunPosition = vector3d(1.0, 11.0, 1.0)
 
   # Setup transformation matrices.
   var
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
-    camera = initCamera(0.0, 300.0, -40.0)
+    camera = initCamera(0.0, 10.0, -30.0)
 
   # Setup shaders.
   var flatMeshShader = loadFlatMeshShader()
@@ -113,7 +58,14 @@ proc main(): bool =
   use flatMeshShader:
     U.projection.updateWith(projectionMatrix)
     U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-    U.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
+
+  let sunShader =
+    initShader(["shader/lightsource.vert"], ["shader/lightsource.frag"])
+  defer: sunShader.destroy()
+  let sunShaderProjection = sunShader.getUniformLocationMat4("projection")
+  let sunShaderModelView = sunShader.getUniformLocationMat4("modelView")
+  use sunShader:
+    sunShaderProjection.updateWith(projectionMatrix)
 
   # Main loop.
   var
@@ -140,7 +92,7 @@ proc main(): bool =
                         event.motion.yrel.float/200.0)
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
-          of K_q, K_ESCAPE:
+          of K_ESCAPE:
             running = false
           of K_g:
             if wireframe:
@@ -167,10 +119,18 @@ proc main(): bool =
       camera.moveRight(-movementSpeed)
     elif keys[SDL_SCANCODE_D.uint8] == 1:
       camera.moveRight(movementSpeed)
+    if keys[SDL_SCANCODE_E.uint8] == 1:
+      camera.moveUp(-movementSpeed)
+    elif keys[SDL_SCANCODE_Q.uint8] == 1:
+      camera.moveUp(movementSpeed)
 
     # Update state.
-    let secondsPassed = sdl2.getTicks().float/1000.0
-    var lookAtMatrix = camera.getLookAtMatrix()
+    let
+      secondsPassed = sdl2.getTicks().float/1000.0
+      lookAtMatrix = camera.getLookAtMatrix()
+    sunPosition.x = sin(secondsPassed) * 30
+    sunPosition.y = sin(secondsPassed) * 10 + 20.0
+    sunPosition.z = cos(secondsPassed) * 30
 
     # Reload shaders.
     if shaderReloadCounter == 40:
@@ -178,7 +138,6 @@ proc main(): bool =
       flatMeshShader.afterReload:
         U.projection.updateWith(projectionMatrix)
         U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-        U.lightPosition.updateWith(vector3d(0.0, 10.0, 0.0))
     else:
       shaderReloadCounter += 1
 
@@ -187,8 +146,14 @@ proc main(): bool =
 
     use flatMeshShader:
       U.view.updateWith(lookAtMatrix)
-      U.model.updateWith(scale(1000.0))
+      U.model.updateWith(scale(50.0))
+      U.lightPosition.updateWith(sunPosition)
       flatMesh.draw()
+
+    use sunShader:
+      let sunMatrix = clearScaleRotation(sunPosition.move & lookAtMatrix)
+      sunShaderModelView.updateWith(sunMatrix)
+      sun.draw()
 
     glSwapWindow(window)
 
