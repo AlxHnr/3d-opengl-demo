@@ -1,4 +1,4 @@
 vec3 getHeightVec(float x, float z)
 {
-  return vec3(x, sin(x * 5) * cos(z * 5)/5.0, z);
+  return vec3(x, sin(x * 15) * cos(z * 15)/15.0, z);
 }

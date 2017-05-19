@@ -40,7 +40,7 @@ proc main(): bool =
   glEnable(GL_DEPTH_TEST)
 
   # Setup vaos.
-  let flatMesh = initFlatMesh(48)
+  let flatMesh = initFlatMesh(96)
   defer: flatMesh.destroy()
 
   let sun = initCircle(18)
