@@ -5,8 +5,8 @@ import
   shader, shaderwrapper, uniform, use
 
 const
-  windowW = 800
-  windowH = 600
+  windowW = 1024
+  windowH = 768
 
 template sdlAssert(condition: bool) =
   if not condition:
