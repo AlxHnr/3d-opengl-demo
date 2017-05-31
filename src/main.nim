@@ -4,6 +4,8 @@ import
   globject, mathhelpers, camera, primitivegenerator,
   shader, shaderwrapper, uniform, use
 
+type MouseMode = enum mmNone, mmCamera, mmDrag
+
 const
   windowW = 1024
   windowH = 768
@@ -71,7 +73,7 @@ proc main(): bool =
   var
     running = true
     wireframe = false
-    cameraMode = false
+    mouseMode = mmNone
     shaderReloadCounter = 0
     event = sdl2.defaultEvent
   let keys = sdl2.getKeyboardState()
@@ -81,15 +83,26 @@ proc main(): bool =
     while pollEvent(event):
       if event.kind == QuitEvent:
         running = false
-      elif event.kind == MouseButtonDown and
-           event.button.button == sdl2.BUTTON_RIGHT:
-        cameraMode = true
+      elif event.kind == MouseButtonDown:
+        case event.button.button:
+          of sdl2.BUTTON_RIGHT:
+            mouseMode = mmCamera
+          of sdl2.BUTTON_LEFT:
+            mouseMode = mmDrag
+          else: discard
       elif event.kind == MouseButtonUp and
-           event.button.button == sdl2.BUTTON_RIGHT:
-        cameraMode = false
-      elif event.kind == MouseMotion and cameraMode:
-        camera.yawPitch(event.motion.xrel.float/200.0,
-                        event.motion.yrel.float/200.0)
+           (event.button.button == sdl2.BUTTON_LEFT or
+            event.button.button == sdl2.BUTTON_RIGHT):
+        mouseMode = mmNone
+      elif event.kind == MouseMotion:
+        case mouseMode:
+          of mmCamera:
+            camera.yawPitch(event.motion.xrel.float/200.0,
+                            event.motion.yrel.float/200.0)
+          of mmDrag:
+            sunPosition -= camera.up * event.motion.yrel.float/30.0
+            sunPosition += camera.right * event.motion.xrel.float/30.0
+          of mmNone: discard
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
           of K_ESCAPE:
@@ -100,8 +113,7 @@ proc main(): bool =
             else:
               glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
             wireframe = not wireframe
-          else:
-            discard "Ignore most keys"
+          else: discard
 
     let movementSpeed =
       if keys[SDL_SCANCODE_SPACE.uint8] == 1:
@@ -128,9 +140,6 @@ proc main(): bool =
     let
       secondsPassed = sdl2.getTicks().float/1000.0
       lookAtMatrix = camera.getLookAtMatrix()
-    sunPosition.x = sin(secondsPassed) * 30
-    sunPosition.y = sin(secondsPassed) * 10 + 20.0
-    sunPosition.z = cos(secondsPassed) * 30
 
     # Reload shaders.
     if shaderReloadCounter == 40:
