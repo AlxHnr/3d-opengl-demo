@@ -10,6 +10,33 @@ const
   windowW = 1024
   windowH = 768
 
+proc castRay(mouseX, mouseY: int;
+             inverseProjectionMatrix: Matrix3d,
+             inverseViewMatrix: Matrix3d): Vector3d =
+  let
+    clipRay = vector3d(mouseX/windowW * 4.0 - 2.0,
+                       2.0 - mouseY/windowH * 4.0, -1.0)
+    viewRay = clipRay & inverseProjectionMatrix
+  result = vector3d(viewRay.x, viewRay.y, -1.0) & inverseViewMatrix
+  result.normalize()
+
+proc collidesWithRay(origin, direction, sphere: Vector3d): bool =
+  let
+    distance = sphere - origin
+    tca = dot(distance, direction)
+    d2 = dot(distance, distance) - tca * tca
+
+  if d2 < 1.0:
+    let thc = sqrt(1 - d2)
+    var
+      t0 = tca - thc
+      t1 = tca + thc
+
+    if(t0 > t1):  swap(t0, t1)
+    if(t0 < 0.0): t0 = t1
+
+    result = t0 > 0
+
 template sdlAssert(condition: bool) =
   if not condition:
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
@@ -52,6 +79,7 @@ proc main(): bool =
   # Setup transformation matrices.
   var
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
+    inverseProjectionMatrix = projectionMatrix.inverse
     camera = initCamera(0.0, 10.0, -30.0)
 
   # Setup shaders.
@@ -69,6 +97,8 @@ proc main(): bool =
   defer: sunShader.destroy()
   let sunShaderProjection = sunShader.getUniformLocationMat4("projection")
   let sunShaderModelView = sunShader.getUniformLocationMat4("modelView")
+  let sunShaderColor = sunShader.getUniformLocationVec3("color")
+  var sunColor = vector3d(1.0, 1.0, 1.0)
   use sunShader:
     sunShaderProjection.updateWith(projectionMatrix)
 
@@ -91,7 +121,12 @@ proc main(): bool =
           of sdl2.BUTTON_RIGHT:
             mouseMode = mmCamera
           of sdl2.BUTTON_LEFT:
-            mouseMode = mmDrag
+            let ray =
+              castRay(event.button.x, event.button.y,
+                      inverseProjectionMatrix,
+                      camera.getLookAtMatrix().inverse)
+            if collidesWithRay(camera.position, ray, sunPosition):
+              mouseMode = mmDrag
           else: discard
       elif event.kind == MouseButtonUp and
            (event.button.button == sdl2.BUTTON_LEFT or
@@ -167,6 +202,7 @@ proc main(): bool =
     use sunShader:
       let sunMatrix = clearScaleRotation(sunPosition.move & lookAtMatrix)
       sunShaderModelView.updateWith(sunMatrix)
+      sunShaderColor.updateWith(sunColor)
       sun.draw()
 
     glSwapWindow(window)

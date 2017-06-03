@@ -1,6 +1,8 @@
-out vec4 color;
+out vec4 finalColor;
+
+uniform vec3 color;
 
 void main(void)
 {
-  color = vec4(1.0);
+  finalColor = vec4(color, 1.0);
 }
