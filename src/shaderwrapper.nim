@@ -2,7 +2,7 @@ import os, times, shaderutils, reloadableshader, uniform, onfailure
 
 type
   UniformLocations = object
-    model, view, projection: UniformLocationMat4
+    model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor: UniformLocationVec3
   BasicLightShader = object
     reloadableShader: ReloadableShader
@@ -13,6 +13,7 @@ proc resolveUniformLocations(program: ShaderProgram): UniformLocations =
   result.model = program.getUniformLocationMat4("model")
   result.view = program.getUniformLocationMat4("view")
   result.projection = program.getUniformLocationMat4("projection")
+  result.normalMatrix = program.getUniformLocationMat4("normalMatrix")
   result.lightPosition = program.getUniformLocationVec3("lightPosition")
   result.lightColor = program.getUniformLocationVec3("lightColor")
 
@@ -50,5 +51,6 @@ template declareUseBodyWithShader*(shader: ShaderWrapper, body: typed) =
 proc model*(u: UniformLocations): auto = u.model
 proc view*(u: UniformLocations): auto = u.view
 proc projection*(u: UniformLocations): auto = u.projection
+proc normalMatrix*(u: UniformLocations): auto = u.normalMatrix
 proc lightPosition*(u: UniformLocations): auto = u.lightPosition
 proc lightColor*(u: UniformLocations): auto = u.lightColor

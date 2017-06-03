@@ -57,7 +57,10 @@ proc main(): bool =
   # Setup shaders.
   var flatMeshShader = loadFlatMeshShader()
   defer: flatMeshShader.destroy()
+
+  let flatMeshModelMatrix = scale(50.0)
   use flatMeshShader:
+    U.model.updateWith(flatMeshModelMatrix)
     U.projection.updateWith(projectionMatrix)
     U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
 
@@ -138,13 +141,15 @@ proc main(): bool =
 
     # Update state.
     let
-      secondsPassed = sdl2.getTicks().float/1000.0
       lookAtMatrix = camera.getLookAtMatrix()
+      flatMeshNormalMatrix =
+        (lookAtMatrix & flatMeshModelMatrix).inverse.transpose
 
     # Reload shaders.
     if shaderReloadCounter == 40:
       shaderReloadCounter = 0
       flatMeshShader.afterReload:
+        U.model.updateWith(flatMeshModelMatrix)
         U.projection.updateWith(projectionMatrix)
         U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
     else:
@@ -155,7 +160,7 @@ proc main(): bool =
 
     use flatMeshShader:
       U.view.updateWith(lookAtMatrix)
-      U.model.updateWith(scale(50.0))
+      U.normalMatrix.updateWith(flatMeshNormalMatrix)
       U.lightPosition.updateWith(sunPosition)
       flatMesh.draw()
 
