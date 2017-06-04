@@ -1,7 +1,7 @@
 import math, basic3d
 
 type
-  Camera = object
+  Camera* = object
     position, direction, right, up: Vector3d
     yaw, pitch: float
 

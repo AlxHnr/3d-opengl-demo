@@ -37,6 +37,16 @@ proc collidesWithRay(origin, direction, sphere: Vector3d): bool =
 
     result = t0 > 0
 
+proc moveToMousePos(obj: var Vector3d;
+                    camera: Camera; mouseX, mouseY: int,
+                    inverseProjectionMatrix: Matrix3d,
+                    inverseViewMatrix: Matrix3d) =
+  let
+    ray = castRay(mouseX, mouseY, inverseProjectionMatrix, inverseViewMatrix)
+    distance = obj - camera.position
+    projection = dot(ray, distance)/dot(ray, ray) * ray
+  obj = camera.position + projection
+
 template sdlAssert(condition: bool) =
   if not condition:
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
@@ -50,6 +60,8 @@ proc main(): bool =
   sdlAssert(glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3) == 0)
   sdlAssert(glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                            SDL_GL_CONTEXT_PROFILE_CORE) == 0)
+  sdlAssert(glSetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) == 0)
+  sdlAssert(glSetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4) == 0)
 
   let window = createWindow("OpenGL Demo",
                             SDL_WINDOWPOS_UNDEFINED,
@@ -65,8 +77,9 @@ proc main(): bool =
   loadExtensions()
 
   glViewport(0, 0, windowW, windowH)
-  glClearColor(0, 0, 0, 0)
+  glClearColor(0.6, 0.65, 0.7, 0)
   glEnable(GL_DEPTH_TEST)
+  glEnable(GL_MULTISAMPLE)
 
   # Setup vaos.
   let flatMesh = initFlatMesh(96)
@@ -138,8 +151,9 @@ proc main(): bool =
             camera.yawPitch(event.motion.xrel.float/200.0,
                             event.motion.yrel.float/200.0)
           of mmDrag:
-            sunPosition -= camera.up * event.motion.yrel.float/30.0
-            sunPosition += camera.right * event.motion.xrel.float/30.0
+            sunPosition.moveToMousePos(camera, event.motion.x, event.motion.y,
+                                       inverseProjectionMatrix,
+                                       camera.getLookAtMatrix().inverse)
           of mmNone: discard
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
