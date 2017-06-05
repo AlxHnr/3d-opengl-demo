@@ -125,10 +125,6 @@ proc draw*(mesh: Mesh) =
                    mesh.indexCount.GLsizei,
                    GL_UNSIGNED_INT, nil)
 
-proc drawPoints*(mesh: Mesh) =
-  use mesh.vao:
-    glDrawArrays(GL_TRIANGLES, 0, mesh.indexCount.GLsizei)
-
 proc initCircle*(subdivisions: range[3..int.high]): Circle =
   result.vertexCount = subdivisions.int + 2
   var vertices = newSeq[float](result.vertexCount * 2)
