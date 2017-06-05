@@ -85,6 +85,9 @@ proc main(): bool =
   let flatMesh = initFlatMesh(96)
   defer: flatMesh.destroy()
 
+  let cylinderMesh = initCylinder(51, 0.01)
+  defer: cylinderMesh.destroy()
+
   let sun = initCircle(18)
   defer: sun.destroy()
   var sunPosition = vector3d(1.0, 11.0, 1.0)
@@ -114,6 +117,20 @@ proc main(): bool =
   var sunColor = vector3d(1.0, 1.0, 1.0)
   use sunShader:
     sunShaderProjection.updateWith(projectionMatrix)
+
+  let cylinderShader =
+    initShader(["shader/mandelbrot.vert"], ["shader/lightsource.frag"])
+  defer: cylinderShader.destroy()
+  let
+    cylinderModel = cylinderShader.getUniformLocationMat4("model")
+    cylinderView = cylinderShader.getUniformLocationMat4("view")
+    cylinderProjection = cylinderShader.getUniformLocationMat4("projection")
+    cylinderColor = cylinderShader.getUniformLocationVec3("color")
+
+  use cylinderShader:
+    cylinderModel.updateWith(scale(10.0) & move(20.0, 7.0, 0.0))
+    cylinderProjection.updateWith(projectionMatrix)
+    cylinderColor.updateWith(sunColor)
 
   # Main loop.
   var
@@ -209,8 +226,8 @@ proc main(): bool =
 
     use flatMeshShader:
       U.view.updateWith(lookAtMatrix)
-      U.normalMatrix.updateWith(flatMeshNormalMatrix)
       U.lightPosition.updateWith(sunPosition)
+      U.normalMatrix.updateWith(flatMeshNormalMatrix)
       flatMesh.draw()
 
     use sunShader:
@@ -218,6 +235,12 @@ proc main(): bool =
       sunShaderModelView.updateWith(sunMatrix)
       sunShaderColor.updateWith(sunColor)
       sun.draw()
+
+    if not wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+    use cylinderShader:
+      cylinderView.updateWith(lookAtMatrix)
+      cylinderMesh.drawPoints()
+    if not wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
 
     glSwapWindow(window)
 

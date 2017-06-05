@@ -1,5 +1,3 @@
-#version 330 core
-
 layout (location = 0) in vec3 position;
 
 uniform mat4 model;
@@ -11,5 +9,9 @@ out vec2 fragmentPosition;
 void main(void)
 {
   fragmentPosition = position.xy;
-  gl_Position = projection * view * model * vec4(position, 1.0);
+  vec3 newPosition = position;
+
+  newPosition.y += position.x * position.x * position.x;
+
+  gl_Position = projection * view * model * vec4(newPosition, 1.0);
 }

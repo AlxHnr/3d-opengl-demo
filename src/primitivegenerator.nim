@@ -9,7 +9,7 @@ type
   Circle = object
     vbo: ArrayBuffer
     vao: VertexArrayObject
-    indexCount: int
+    vertexCount: int
 
 proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
   let
@@ -73,16 +73,16 @@ proc draw*(mesh: FlatMesh) =
                    GL_UNSIGNED_INT, nil)
 
 proc initCircle*(subdivisions: range[3..int.high]): Circle =
-  result.indexCount = subdivisions.int + 2
-  var vertices = newSeq[float](result.indexCount * 2)
-  vertices[0] = 0.0;
-  vertices[1] = 0.0;
+  result.vertexCount = subdivisions.int + 2
+  var vertices = newSeq[float](result.vertexCount * 2)
+  vertices[0] = 0.0
+  vertices[1] = 0.0
 
-  vertices[2] = 1.0;
-  vertices[3] = 0.0;
+  vertices[2] = 1.0
+  vertices[3] = 0.0
 
-  vertices[vertices.high - 1] = 1.0;
-  vertices[vertices.high] = 0.0;
+  vertices[vertices.high - 1] = 1.0
+  vertices[vertices.high] = 0.0
 
   let step = 2.0 * PI/subdivisions.float
   for i in 1..<subdivisions.int:
@@ -106,4 +106,41 @@ proc destroy*(circle: Circle) =
 
 proc draw*(circle: Circle) =
   use circle.vao:
-    glDrawArrays(GL_TRIANGLE_FAN, 0, circle.indexCount.GLsizei)
+    glDrawArrays(GL_TRIANGLE_FAN, 0, circle.vertexCount.GLsizei)
+
+proc initCylinder*(subdivisions: range[2..int.high],
+                   radius: float): FlatMesh =
+  let
+    subdivisions = subdivisions.int
+    subdivisionsPrev = subdivisions - 1
+    xStep = 2.0/subdivisions.float
+    circleStep = 2.0 * PI/subdivisions.float
+
+  result.indexCount = subdivisions^2
+  var vertices = newSeq[float](subdivisions^2 * 3)
+
+  for xIndex in 0..<subdivisions:
+    let x = -1.0 + xIndex.float * xStep
+    for circleIndex in 0..<subdivisions:
+      let
+        index = xIndex * subdivisions * 3 + circleIndex * 3
+        angle = circleIndex.float * circleStep
+      vertices[index] = x
+      vertices[index + 1] = sin(angle) * radius
+      vertices[index + 2] = cos(angle) * radius
+
+  result.vertexVbo = initArrayBuffer(vertices)
+  onFailure destroy result.vertexVbo:
+    result.indexVbo = initElementBuffer([0, 1, 2])
+    onFailure destroy result.indexVbo:
+      result.vao = initVertexArrayObject()
+
+      use result.vao:
+        result.vertexVbo.bindBuffer()
+        glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE,
+                              3 * GLfloat.sizeof, nil)
+        glEnableVertexAttribArray(0)
+
+proc drawPoints*(mesh: FlatMesh) =
+  use mesh.vao:
+    glDrawArrays(GL_TRIANGLES, 0, mesh.indexCount.GLsizei)
