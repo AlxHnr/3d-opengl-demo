@@ -116,43 +116,46 @@ proc draw*(circle: Circle) =
 proc initCylinder*(subdivisions: range[2..int.high],
                    radius: float): FlatMesh =
   let
-    subdivisions = subdivisions.int
-    subdivisionsPrev = subdivisions - 1
-    xStep = 2.0/subdivisions.float
-    circleStep = 2.0 * PI/subdivisions.float
+    subdivisionsLength = subdivisions.int
+    subdivisionsLengthPrev = subdivisionsLength - 1
+
+    subdivisionsCircle = (subdivisions.float/15.0).int + 3
+    subdivisionsCirclePrev = subdivisionsCircle - 1
+
+    xStep = 2.0/subdivisionsLength.float
+    circleStep = 2.0 * PI/subdivisionsCircle.float
 
   var
-    vertices = newSeq[float](subdivisions^2 * 3)
-    indices = newSeq[int](subdivisions * subdivisionsPrev * 6)
+    vertices = newSeq[float](subdivisionsLength * subdivisionsCircle * 3)
+    indices = newSeq[int](subdivisionsLengthPrev * subdivisionsCircle * 6)
 
   # Generate vertices.
-  for xIndex in 0..<subdivisions:
+  for xIndex in 0..<subdivisionsLength:
     let x = -1.0 + xIndex.float * xStep
-    for circleIndex in 0..<subdivisions:
+    for circleIndex in 0..<subdivisionsCircle:
       let
-        index = xIndex * subdivisions * 3 + circleIndex * 3
+        index = xIndex * subdivisionsCircle * 3 + circleIndex * 3
         angle = circleIndex.float * circleStep
       vertices[index] = x
       vertices[index + 1] = sin(angle) * radius
       vertices[index + 2] = cos(angle) * radius
 
   # Generate indices.
-  for xIndex in 0..<subdivisionsPrev:
-    for circleIndex in 0..<subdivisionsPrev:
-      let index = xIndex * subdivisions * 6 + circleIndex * 6
-      indices[index]     = xIndex * subdivisions + circleIndex
+  for xIndex in 0..<subdivisionsLengthPrev:
+    for circleIndex in 0..<subdivisionsCirclePrev:
+      let index = xIndex * subdivisionsCircle * 6 + circleIndex * 6
+      indices[index]     = xIndex * subdivisionsCircle + circleIndex
       indices[index + 1] = indices[index] + 1
-      indices[index + 2] = (xIndex + 1) * subdivisions + circleIndex
-
+      indices[index + 2] = (xIndex + 1) * subdivisionsCircle + circleIndex
       indices[index + 3] = indices[index + 2]
       indices[index + 4] = indices[index + 1]
       indices[index + 5] = indices[index + 2] + 1
 
-    let index = xIndex * subdivisions * 6 + subdivisionsPrev * 6
-    indices[index] = xIndex * subdivisions + subdivisionsPrev
-    indices[index + 1] = xIndex * subdivisions
-    indices[index + 5] = (xIndex + 1) * subdivisions
-    indices[index + 2] = indices[index + 5] + subdivisionsPrev
+    let index = xIndex * subdivisionsCircle * 6 + subdivisionsCirclePrev * 6
+    indices[index + 1] = xIndex * subdivisionsCircle
+    indices[index]     = indices[index + 1] + subdivisionsCirclePrev
+    indices[index + 5] = (xIndex + 1) * subdivisionsCircle
+    indices[index + 2] = indices[index + 5] + subdivisionsCirclePrev
     indices[index + 3] = indices[index + 2]
     indices[index + 4] = indices[index + 1]
 

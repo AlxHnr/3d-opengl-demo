@@ -85,7 +85,7 @@ proc main(): bool =
   let flatMesh = initFlatMesh(96)
   defer: flatMesh.destroy()
 
-  let cylinderMesh = initCylinder(20, 0.01)
+  let cylinderMesh = initCylinder(100, 0.01)
   defer: cylinderMesh.destroy()
 
   let sun = initCircle(18)
@@ -128,7 +128,7 @@ proc main(): bool =
     cylinderColor = cylinderShader.getUniformLocationVec3("color")
 
   use cylinderShader:
-    cylinderModel.updateWith(scale(1000.0) & move(20.0, 7.0, 0.0))
+    cylinderModel.updateWith(scale(50.0) & move(20.0, 25.0, 0.0))
     cylinderProjection.updateWith(projectionMatrix)
     cylinderColor.updateWith(sunColor)
 
