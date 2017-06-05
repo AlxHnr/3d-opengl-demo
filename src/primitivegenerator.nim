@@ -42,11 +42,11 @@ proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
     for x in 0..<subdivisionsPrev:
       let i = z6Sub + x * 6
       indices[i]     = z * subdivisions + x
-      indices[i + 1] = (z + 1) * subdivisions + x + 1
-      indices[i + 2] = z * subdivisions + x + 1
-      indices[i + 3] = z * subdivisions + x
       indices[i + 4] = (z + 1) * subdivisions + x
-      indices[i + 5] = (z + 1) * subdivisions + x + 1
+      indices[i + 1] = indices[i + 4] + 1
+      indices[i + 2] = indices[i] + 1
+      indices[i + 3] = indices[i]
+      indices[i + 5] = indices[i + 1]
 
   result.vertexVbo = initArrayBuffer(vertices)
   onFailure destroy result.vertexVbo:
@@ -116,9 +116,12 @@ proc initCylinder*(subdivisions: range[2..int.high],
     xStep = 2.0/subdivisions.float
     circleStep = 2.0 * PI/subdivisions.float
 
-  result.indexCount = subdivisions^2
-  var vertices = newSeq[float](subdivisions^2 * 3)
+  result.indexCount = subdivisions * subdivisionsPrev * 6
+  var
+    vertices = newSeq[float](subdivisions^2 * 3)
+    indices = newSeq[int](result.indexCount)
 
+  # Generate vertices.
   for xIndex in 0..<subdivisions:
     let x = -1.0 + xIndex.float * xStep
     for circleIndex in 0..<subdivisions:
@@ -129,14 +132,36 @@ proc initCylinder*(subdivisions: range[2..int.high],
       vertices[index + 1] = sin(angle) * radius
       vertices[index + 2] = cos(angle) * radius
 
+  # Generate indices.
+  for xIndex in 0..<subdivisionsPrev:
+    for circleIndex in 0..<subdivisionsPrev:
+      let index = xIndex * subdivisions * 6 + circleIndex * 6
+      indices[index]     = xIndex * subdivisions + circleIndex
+      indices[index + 1] = indices[index] + 1
+      indices[index + 2] = (xIndex + 1) * subdivisions + circleIndex
+
+      indices[index + 3] = indices[index + 2]
+      indices[index + 4] = indices[index + 1]
+      indices[index + 5] = indices[index + 2] + 1
+
+    let index = xIndex * subdivisions * 6 + subdivisionsPrev * 6
+    indices[index] = xIndex * subdivisions + subdivisionsPrev
+    indices[index + 1] = xIndex * subdivisions
+    indices[index + 5] = (xIndex + 1) * subdivisions
+    indices[index + 2] = indices[index + 5] + subdivisionsPrev
+    indices[index + 3] = indices[index + 2]
+    indices[index + 4] = indices[index + 1]
+
+  # Create vao.
   result.vertexVbo = initArrayBuffer(vertices)
   onFailure destroy result.vertexVbo:
-    result.indexVbo = initElementBuffer([0, 1, 2])
+    result.indexVbo = initElementBuffer(indices)
     onFailure destroy result.indexVbo:
       result.vao = initVertexArrayObject()
 
       use result.vao:
         result.vertexVbo.bindBuffer()
+        result.indexVbo.bindBuffer()
         glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE,
                               3 * GLfloat.sizeof, nil)
         glEnableVertexAttribArray(0)
