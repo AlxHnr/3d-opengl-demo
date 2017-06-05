@@ -11,15 +11,31 @@ type
     vao: VertexArrayObject
     vertexCount: int
 
+proc initFlatMeshVao(vertices: openArray[float],
+                     indices: openArray[int]): FlatMesh =
+  result.indexCount = indices.len
+
+  result.vertexVbo = initArrayBuffer(vertices)
+  onFailure destroy result.vertexVbo:
+    result.indexVbo = initElementBuffer(indices)
+    onFailure destroy result.indexVbo:
+      result.vao = initVertexArrayObject()
+
+      use result.vao:
+        result.vertexVbo.bindBuffer()
+        result.indexVbo.bindBuffer()
+        glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE,
+                              3 * GLfloat.sizeof, nil)
+        glEnableVertexAttribArray(0)
+
 proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
   let
     subdivisions = subdivisions.int
     subdivisionsPrev = subdivisions - 1
-  result.indexCount = subdivisionsPrev * subdivisionsPrev * 6
 
   var
     vertices = newSeq[float](subdivisions * subdivisions * 3)
-    indices = newSeq[int](result.indexCount)
+    indices = newSeq[int](subdivisionsPrev * subdivisionsPrev * 6)
 
   let
     subdivisionHalf = subdivisions/2
@@ -48,18 +64,7 @@ proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
       indices[i + 3] = indices[i]
       indices[i + 5] = indices[i + 1]
 
-  result.vertexVbo = initArrayBuffer(vertices)
-  onFailure destroy result.vertexVbo:
-    result.indexVbo = initElementBuffer(indices)
-    onFailure destroy result.indexVbo:
-      result.vao = initVertexArrayObject()
-
-      use result.vao:
-        result.vertexVbo.bindBuffer()
-        result.indexVbo.bindBuffer()
-        glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE,
-                              3 * GLfloat.sizeof, nil)
-        glEnableVertexAttribArray(0)
+  initFlatMeshVao(vertices, indices)
 
 proc destroy*(mesh: FlatMesh) =
   mesh.vertexVbo.destroy()
@@ -116,10 +121,9 @@ proc initCylinder*(subdivisions: range[2..int.high],
     xStep = 2.0/subdivisions.float
     circleStep = 2.0 * PI/subdivisions.float
 
-  result.indexCount = subdivisions * subdivisionsPrev * 6
   var
     vertices = newSeq[float](subdivisions^2 * 3)
-    indices = newSeq[int](result.indexCount)
+    indices = newSeq[int](subdivisions * subdivisionsPrev * 6)
 
   # Generate vertices.
   for xIndex in 0..<subdivisions:
@@ -152,19 +156,7 @@ proc initCylinder*(subdivisions: range[2..int.high],
     indices[index + 3] = indices[index + 2]
     indices[index + 4] = indices[index + 1]
 
-  # Create vao.
-  result.vertexVbo = initArrayBuffer(vertices)
-  onFailure destroy result.vertexVbo:
-    result.indexVbo = initElementBuffer(indices)
-    onFailure destroy result.indexVbo:
-      result.vao = initVertexArrayObject()
-
-      use result.vao:
-        result.vertexVbo.bindBuffer()
-        result.indexVbo.bindBuffer()
-        glVertexAttribPointer(0, 3, cGL_Float, GL_FALSE,
-                              3 * GLfloat.sizeof, nil)
-        glEnableVertexAttribArray(0)
+  initFlatMeshVao(vertices, indices)
 
 proc drawPoints*(mesh: FlatMesh) =
   use mesh.vao:
