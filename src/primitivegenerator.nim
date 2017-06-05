@@ -1,7 +1,7 @@
 import math, opengl, globject, use, onfailure
 
 type
-  FlatMesh = object
+  Mesh = object
     vertexVbo: ArrayBuffer
     indexVbo: ElementBuffer
     vao: VertexArrayObject
@@ -12,7 +12,7 @@ type
     vertexCount: int
 
 proc initFlatMeshVao(vertices: openArray[float],
-                     indices: openArray[int]): FlatMesh =
+                     indices: openArray[int]): Mesh =
   result.indexCount = indices.len
 
   result.vertexVbo = initArrayBuffer(vertices)
@@ -28,7 +28,7 @@ proc initFlatMeshVao(vertices: openArray[float],
                               3 * GLfloat.sizeof, nil)
         glEnableVertexAttribArray(0)
 
-proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
+proc initFlatMesh*(subdivisions: range[2..int.high]): Mesh =
   let
     subdivisions = subdivisions.int
     subdivisionsPrev = subdivisions - 1
@@ -66,55 +66,8 @@ proc initFlatMesh*(subdivisions: range[2..int.high]): FlatMesh =
 
   initFlatMeshVao(vertices, indices)
 
-proc destroy*(mesh: FlatMesh) =
-  mesh.vertexVbo.destroy()
-  mesh.indexVbo.destroy()
-  mesh.vao.destroy()
-
-proc draw*(mesh: FlatMesh) =
-  use mesh.vao:
-    glDrawElements(GL_TRIANGLES,
-                   mesh.indexCount.GLsizei,
-                   GL_UNSIGNED_INT, nil)
-
-proc initCircle*(subdivisions: range[3..int.high]): Circle =
-  result.vertexCount = subdivisions.int + 2
-  var vertices = newSeq[float](result.vertexCount * 2)
-  vertices[0] = 0.0
-  vertices[1] = 0.0
-
-  vertices[2] = 1.0
-  vertices[3] = 0.0
-
-  vertices[vertices.high - 1] = 1.0
-  vertices[vertices.high] = 0.0
-
-  let step = 2.0 * PI/subdivisions.float
-  for i in 1..<subdivisions.int:
-    let angle = i.float * step
-    vertices[(i * 2) + 2] = cos(angle)
-    vertices[(i * 2) + 3] = sin(angle)
-
-  result.vbo = initArrayBuffer(vertices)
-  onFailure destroy result.vbo:
-    result.vao = initVertexArrayObject()
-
-    use result.vao:
-      result.vbo.bindBuffer()
-      glVertexAttribPointer(0, 2, cGL_Float, GL_FALSE,
-                            2 * GLfloat.sizeof, nil)
-      glEnableVertexAttribArray(0)
-
-proc destroy*(circle: Circle) =
-  circle.vbo.destroy()
-  circle.vao.destroy()
-
-proc draw*(circle: Circle) =
-  use circle.vao:
-    glDrawArrays(GL_TRIANGLE_FAN, 0, circle.vertexCount.GLsizei)
-
 proc initCylinder*(subdivisions: range[2..int.high],
-                   radius: float): FlatMesh =
+                   radius: float): Mesh =
   let
     subdivisionsLength = subdivisions.int
     subdivisionsLengthPrev = subdivisionsLength - 1
@@ -161,6 +114,53 @@ proc initCylinder*(subdivisions: range[2..int.high],
 
   initFlatMeshVao(vertices, indices)
 
-proc drawPoints*(mesh: FlatMesh) =
+proc destroy*(mesh: Mesh) =
+  mesh.vertexVbo.destroy()
+  mesh.indexVbo.destroy()
+  mesh.vao.destroy()
+
+proc draw*(mesh: Mesh) =
+  use mesh.vao:
+    glDrawElements(GL_TRIANGLES,
+                   mesh.indexCount.GLsizei,
+                   GL_UNSIGNED_INT, nil)
+
+proc drawPoints*(mesh: Mesh) =
   use mesh.vao:
     glDrawArrays(GL_TRIANGLES, 0, mesh.indexCount.GLsizei)
+
+proc initCircle*(subdivisions: range[3..int.high]): Circle =
+  result.vertexCount = subdivisions.int + 2
+  var vertices = newSeq[float](result.vertexCount * 2)
+  vertices[0] = 0.0
+  vertices[1] = 0.0
+
+  vertices[2] = 1.0
+  vertices[3] = 0.0
+
+  vertices[vertices.high - 1] = 1.0
+  vertices[vertices.high] = 0.0
+
+  let step = 2.0 * PI/subdivisions.float
+  for i in 1..<subdivisions.int:
+    let angle = i.float * step
+    vertices[(i * 2) + 2] = cos(angle)
+    vertices[(i * 2) + 3] = sin(angle)
+
+  result.vbo = initArrayBuffer(vertices)
+  onFailure destroy result.vbo:
+    result.vao = initVertexArrayObject()
+
+    use result.vao:
+      result.vbo.bindBuffer()
+      glVertexAttribPointer(0, 2, cGL_Float, GL_FALSE,
+                            2 * GLfloat.sizeof, nil)
+      glEnableVertexAttribArray(0)
+
+proc destroy*(circle: Circle) =
+  circle.vbo.destroy()
+  circle.vao.destroy()
+
+proc draw*(circle: Circle) =
+  use circle.vao:
+    glDrawArrays(GL_TRIANGLE_FAN, 0, circle.vertexCount.GLsizei)
