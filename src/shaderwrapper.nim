@@ -5,7 +5,7 @@ import
 type
   UniformLocations* = object
     model, view, projection, normalMatrix: UniformLocationMat4
-    lightPosition, lightColor: UniformLocationVec3
+    lightPosition, lightColor, color: UniformLocationVec3
   UniformProc = proc(uniforms: UniformLocations)
   ShaderWrapper* = object
     reloadableShader: ReloadableShader
@@ -20,6 +20,7 @@ proc updateUniforms(shader: var ShaderWrapper) =
   shader.uniforms.normalMatrix = program.getUniformLocationMat4("normalMatrix")
   shader.uniforms.lightPosition = program.getUniformLocationVec3("lightPosition")
   shader.uniforms.lightColor = program.getUniformLocationVec3("lightColor")
+  shader.uniforms.color = program.getUniformLocationVec3("color")
 
   var previousProgram: GLint
   glGetIntegerv(GL_CURRENT_PROGRAM, previousProgram.addr)
@@ -55,3 +56,4 @@ proc projection*(u: UniformLocations): auto = u.projection
 proc normalMatrix*(u: UniformLocations): auto = u.normalMatrix
 proc lightPosition*(u: UniformLocations): auto = u.lightPosition
 proc lightColor*(u: UniformLocations): auto = u.lightColor
+proc color*(u: UniformLocations): auto = u.color

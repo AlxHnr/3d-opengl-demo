@@ -82,7 +82,7 @@ proc main(): bool =
   glEnable(GL_MULTISAMPLE)
 
   # Setup vaos.
-  let flatMesh = initFlatMesh(96)
+  let flatMesh = initFlatMesh(128)
   defer: flatMesh.destroy()
 
   let cylinderMesh = initCylinder(100, 0.02)
@@ -90,25 +90,26 @@ proc main(): bool =
 
   let sun = initCircle(18)
   defer: sun.destroy()
-  var sunPosition = vector3d(1.0, 11.0, 1.0)
+  var sunPosition = vector3d(1.0, 90.0, 1.0)
 
   # Setup transformation matrices.
   var
     projectionMatrix = perspectiveMatrix(PI/4, windowW/windowH, 1.0, 100.0)
     inverseProjectionMatrix = projectionMatrix.inverse
-    camera = initCamera(0.0, 10.0, -30.0)
+    camera = initCamera(0.0, 40.0, -30.0)
 
   # Setup shaders.
   let
-    flatMeshModelMatrix = scale(50.0)
+    flatMeshModelMatrix = scale(500.0)
     flatMeshShaderUpdate = proc(U: UniformLocations) =
       U.model.updateWith(flatMeshModelMatrix)
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+      U.color.updateWith(vector3d(0.51, 0.7, 0.27))
 
   var flatMeshShader =
     loadShaderWrapper(["shader/height.vert", "shader/flatmesh.vert"],
-                      ["shader/height.vert", "shader/flatmesh.frag"],
+                      ["shader/height.vert", "shader/reflective.frag"],
                       flatMeshShaderUpdate)
   defer: flatMeshShader.destroy()
 
@@ -124,13 +125,15 @@ proc main(): bool =
     sunShaderProjection.updateWith(projectionMatrix)
 
   let
-    cylinderModelMatrix = scale(50.0) & move(20.0, 25.0, 0.0)
+    cylinderModelMatrix = scale(50.0) & move(20.0, 65.0, 0.0)
     curveShaderUpdate = proc(U: UniformLocations) =
       U.model.updateWith(cylinderModelMatrix)
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(sunColor)
+      U.color.updateWith(vector3d(0.8, 1/3, 1/3))
+
   var curveShader = loadShaderWrapper(["shader/curve.vert"],
-                                      ["shader/curve.frag"],
+                                      ["shader/reflective.frag"],
                                       curveShaderUpdate)
   defer: curveShader.destroy()
 

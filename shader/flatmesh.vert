@@ -5,16 +5,19 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 lightPosition;
 
-out vec3 viewCoord, lightViewPosition, fragPosition;
+out vec3 viewCoord, lightViewPosition, normal;
 
 void main(void)
 {
-  vec4 positionView = view * model *
-    vec4(getHeightVec(position.x, position.z), 1.0);
+  vec3 a = getHeightVec(position.x, position.z);
+  vec3 b = getHeightVec(position.x + 0.05, position.z);
+  vec3 c = getHeightVec(position.x, position.z + 0.05);
+  normal = normalize(cross(b - a, c - a));
+
+  vec4 positionView = view * model * vec4(a, 1.0);
 
   viewCoord = positionView.xyz;
   lightViewPosition = (view * vec4(lightPosition, 1.0)).xyz;
 
-  fragPosition = position;
   gl_Position = projection * positionView;
 }
