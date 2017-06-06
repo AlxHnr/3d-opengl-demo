@@ -4,10 +4,9 @@ type
   UniformLocations = object
     model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor: UniformLocationVec3
-  BasicLightShader = object
+  BasicLightShader* = object
     reloadableShader: ReloadableShader
     uniforms: UniformLocations
-  ShaderWrapper* = BasicLightShader
 
 proc resolveUniformLocations(program: ShaderProgram): UniformLocations =
   result.model = program.getUniformLocationMat4("model")
@@ -24,28 +23,34 @@ template buildCaptureUniformProc(onShaderReload: untyped,
     proc(program: ShaderProgram) =
       uniforms = program.resolveUniformLocations()
 
-proc loadFlatMeshShader*(): BasicLightShader =
+proc loadBasicLightShader(vertex, fragment: openArray[string]):
+                          BasicLightShader =
   buildCaptureUniformProc(onShaderReload, uniforms)
   result.reloadableShader =
-    initReloadableShader(["shader/height.vert",
-                          "shader/flatmesh.vert"],
-                         ["shader/height.vert",
-                          "shader/flatmesh.frag"],
-                         onShaderReload)
+    initReloadableShader(vertex, fragment, onShaderReload)
   result.uniforms = uniforms
 
-proc destroy*(shader: ShaderWrapper) =
+proc loadFlatMeshShader*(): BasicLightShader =
+  loadBasicLightShader(["shader/height.vert",
+                        "shader/flatmesh.vert"],
+                       ["shader/height.vert",
+                        "shader/flatmesh.frag"])
+
+proc loadCurveShader*(): BasicLightShader =
+  loadBasicLightShader(["shader/curve.vert"], ["shader/curve.frag"])
+
+proc destroy*(shader: BasicLightShader) =
   shader.reloadableShader.destroy()
 
-proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
+proc tryReload*(shader: var BasicLightShader): bool {.discardable.} =
   buildCaptureUniformProc(onShaderReload, uniforms)
   if shader.reloadableShader.tryReload(onShaderReload):
     shader.uniforms = uniforms
     result = true
 
-template declareShaderWrapperUniformLet*(shader: ShaderWrapper) =
+template declareShaderWrapperUniformLet*(shader: BasicLightShader) =
   let `U` {.inject.} = shader.uniforms
-template declareUseBodyWithShader*(shader: ShaderWrapper, body: typed) =
+template declareUseBodyWithShader*(shader: BasicLightShader, body: typed) =
   use shader.reloadableShader: body
 
 proc model*(u: UniformLocations): auto = u.model

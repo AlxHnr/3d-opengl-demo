@@ -118,20 +118,14 @@ proc main(): bool =
   use sunShader:
     sunShaderProjection.updateWith(projectionMatrix)
 
-  let cylinderShader =
-    initShader(["shader/mandelbrot.vert"], ["shader/lightsource.frag"])
-  defer: cylinderShader.destroy()
-  let
-    cylinderModel = cylinderShader.getUniformLocationMat4("model")
-    cylinderView = cylinderShader.getUniformLocationMat4("view")
-    cylinderProjection = cylinderShader.getUniformLocationMat4("projection")
-    cylinderColor = cylinderShader.getUniformLocationVec3("color")
-    cylinderTime = cylinderShader.getUniformLocationFloat("time")
+  var curveShader = loadCurveShader()
+  defer: curveShader.destroy()
 
-  use cylinderShader:
-    cylinderModel.updateWith(scale(50.0) & move(20.0, 25.0, 0.0))
-    cylinderProjection.updateWith(projectionMatrix)
-    cylinderColor.updateWith(sunColor)
+  let cylinderModelMatrix = scale(50.0) & move(20.0, 25.0, 0.0)
+  use curveShader:
+    U.model.updateWith(cylinderModelMatrix)
+    U.projection.updateWith(projectionMatrix)
+    U.lightColor.updateWith(sunColor)
 
   # Main loop.
   var
@@ -211,12 +205,18 @@ proc main(): bool =
       lookAtMatrix = camera.getLookAtMatrix()
       flatMeshNormalMatrix =
         (lookAtMatrix & flatMeshModelMatrix).inverse.transpose
+      cylinderNormalMatrix =
+        (lookAtMatrix & cylinderModelMatrix).inverse.transpose
 
     # Reload shaders.
     if shaderReloadCounter == 40:
       shaderReloadCounter = 0
       flatMeshShader.afterReload:
         U.model.updateWith(flatMeshModelMatrix)
+        U.projection.updateWith(projectionMatrix)
+        U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+      curveShader.afterReload:
+        U.model.updateWith(cylinderModelMatrix)
         U.projection.updateWith(projectionMatrix)
         U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
     else:
@@ -231,16 +231,17 @@ proc main(): bool =
       U.normalMatrix.updateWith(flatMeshNormalMatrix)
       flatMesh.draw()
 
+    use curveShader:
+      U.view.updateWith(lookAtMatrix)
+      U.lightPosition.updateWith(sunPosition)
+      U.normalMatrix.updateWith(cylinderNormalMatrix)
+      cylinderMesh.draw()
+
     use sunShader:
       let sunMatrix = clearScaleRotation(sunPosition.move & lookAtMatrix)
       sunShaderModelView.updateWith(sunMatrix)
       sunShaderColor.updateWith(sunColor)
       sun.draw()
-
-    use cylinderShader:
-      cylinderView.updateWith(lookAtMatrix)
-      cylinderTime.updateWith(sdl2.getTicks().float/1000.0)
-      cylinderMesh.draw()
 
     glSwapWindow(window)
 

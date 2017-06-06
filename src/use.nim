@@ -23,12 +23,12 @@ template use*(program: ShaderProgram, body: untyped) =
 template use*(shader: ReloadableShader, body: untyped) =
   block: declareUseBodyWithShader(shader, body)
 
-template use*(shader: ShaderWrapper, body: untyped) =
+template use*(shader: BasicLightShader, body: untyped) =
   block:
     declareShaderWrapperUniformLet(shader)
     declareUseBodyWithShader(shader, body)
 
-template afterReload*(shader: var ShaderWrapper, body: untyped) =
+template afterReload*(shader: var BasicLightShader, body: untyped) =
   if shader.tryReload():
     use shader:
       body
