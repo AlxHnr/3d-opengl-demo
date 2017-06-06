@@ -74,6 +74,4 @@ proc tryReload*(shader: var ReloadableShader): bool {.discardable.} =
 
 template declareUseBodyWithShader*(shader: ReloadableShader, body: typed) =
   use shader.program: body
-
-proc program*(shader: ReloadableShader): ShaderProgram =
-  shader.program
+proc program*(shader: ReloadableShader): ShaderProgram = shader.program

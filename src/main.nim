@@ -99,17 +99,22 @@ proc main(): bool =
     camera = initCamera(0.0, 10.0, -30.0)
 
   # Setup shaders.
-  var flatMeshShader = loadFlatMeshShader()
+  let
+    flatMeshModelMatrix = scale(50.0)
+    flatMeshShaderUpdate = proc(U: UniformLocations) =
+      U.model.updateWith(flatMeshModelMatrix)
+      U.projection.updateWith(projectionMatrix)
+      U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+
+  var flatMeshShader =
+    loadShaderWrapper(["shader/height.vert", "shader/flatmesh.vert"],
+                      ["shader/height.vert", "shader/flatmesh.frag"],
+                      flatMeshShaderUpdate)
   defer: flatMeshShader.destroy()
 
-  let flatMeshModelMatrix = scale(50.0)
-  use flatMeshShader:
-    U.model.updateWith(flatMeshModelMatrix)
-    U.projection.updateWith(projectionMatrix)
-    U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+  let sunShader = initShader(["shader/lightsource.vert"],
+                             ["shader/lightsource.frag"])
 
-  let sunShader =
-    initShader(["shader/lightsource.vert"], ["shader/lightsource.frag"])
   defer: sunShader.destroy()
   let sunShaderProjection = sunShader.getUniformLocationMat4("projection")
   let sunShaderModelView = sunShader.getUniformLocationMat4("modelView")
@@ -118,14 +123,16 @@ proc main(): bool =
   use sunShader:
     sunShaderProjection.updateWith(projectionMatrix)
 
-  var curveShader = loadCurveShader()
+  let
+    cylinderModelMatrix = scale(50.0) & move(20.0, 25.0, 0.0)
+    curveShaderUpdate = proc(U: UniformLocations) =
+      U.model.updateWith(cylinderModelMatrix)
+      U.projection.updateWith(projectionMatrix)
+      U.lightColor.updateWith(sunColor)
+  var curveShader = loadShaderWrapper(["shader/curve.vert"],
+                                      ["shader/curve.frag"],
+                                      curveShaderUpdate)
   defer: curveShader.destroy()
-
-  let cylinderModelMatrix = scale(50.0) & move(20.0, 25.0, 0.0)
-  use curveShader:
-    U.model.updateWith(cylinderModelMatrix)
-    U.projection.updateWith(projectionMatrix)
-    U.lightColor.updateWith(sunColor)
 
   # Main loop.
   var
@@ -211,14 +218,8 @@ proc main(): bool =
     # Reload shaders.
     if shaderReloadCounter == 40:
       shaderReloadCounter = 0
-      flatMeshShader.afterReload:
-        U.model.updateWith(flatMeshModelMatrix)
-        U.projection.updateWith(projectionMatrix)
-        U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-      curveShader.afterReload:
-        U.model.updateWith(cylinderModelMatrix)
-        U.projection.updateWith(projectionMatrix)
-        U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
+      flatMeshShader.tryReload()
+      curveShader.tryReload()
     else:
       shaderReloadCounter += 1
 

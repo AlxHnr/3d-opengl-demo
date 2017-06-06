@@ -1,17 +1,18 @@
-import os, times, shaderutils, reloadableshader, uniform, onfailure
+import
+  os, times, opengl,
+  shaderutils, reloadableshader, uniform, onfailure
 
 type
-  UniformLocations = object
+  UniformLocations* = object
     model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor: UniformLocationVec3
-  BasicLightShader* = object
+  UniformProc = proc(uniforms: UniformLocations)
+  ShaderWrapper* = object
     reloadableShader: ReloadableShader
     uniforms: UniformLocations
+    uniformProc: UniformProc
 
-proc destroy*(shader: BasicLightShader) =
-  shader.reloadableShader.destroy()
-
-proc updateUniforms(shader: var BasicLightShader) =
+proc updateUniforms(shader: var ShaderWrapper) =
   let program = shader.reloadableShader.program
   shader.uniforms.model = program.getUniformLocationMat4("model")
   shader.uniforms.view = program.getUniformLocationMat4("view")
@@ -20,28 +21,32 @@ proc updateUniforms(shader: var BasicLightShader) =
   shader.uniforms.lightPosition = program.getUniformLocationVec3("lightPosition")
   shader.uniforms.lightColor = program.getUniformLocationVec3("lightColor")
 
-proc loadBasicLightShader(vertex, fragment: openArray[string]):
-                          BasicLightShader =
+  var previousProgram: GLint
+  glGetIntegerv(GL_CURRENT_PROGRAM, previousProgram.addr)
+  defer: glUseProgram(previousProgram.GLuint)
+
+  glUseProgram(program.GLuint)
+  shader.uniformProc(shader.uniforms)
+
+proc ignore(uniforms: UniformLocations) = discard uniforms
+proc loadShaderWrapper*(vertex, fragment: openArray[string],
+                        uniformProc: UniformProc = ignore):
+                          ShaderWrapper =
   result.reloadableShader = initReloadableShader(vertex, fragment)
+  result.uniformProc = uniformProc
   result.updateUniforms()
 
-proc loadFlatMeshShader*(): BasicLightShader =
-  loadBasicLightShader(["shader/height.vert",
-                        "shader/flatmesh.vert"],
-                       ["shader/height.vert",
-                        "shader/flatmesh.frag"])
+proc destroy*(shader: ShaderWrapper) =
+  shader.reloadableShader.destroy()
 
-proc loadCurveShader*(): BasicLightShader =
-  loadBasicLightShader(["shader/curve.vert"], ["shader/curve.frag"])
-
-proc tryReload*(shader: var BasicLightShader): bool {.discardable.} =
+proc tryReload*(shader: var ShaderWrapper): bool {.discardable.} =
   if shader.reloadableShader.tryReload():
     shader.updateUniforms()
     result = true
 
-template declareShaderWrapperUniformLet*(shader: BasicLightShader) =
+template declareShaderWrapperUniformLet*(shader: ShaderWrapper) =
   let `U` {.inject.} = shader.uniforms
-template declareUseBodyWithShader*(shader: BasicLightShader, body: typed) =
+template declareUseBodyWithShader*(shader: ShaderWrapper, body: typed) =
   use shader.reloadableShader: body
 
 proc model*(u: UniformLocations): auto = u.model
