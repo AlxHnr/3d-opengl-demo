@@ -98,17 +98,17 @@ proc initCylinder*(subdivisions: range[2..int.high],
     for circleIndex in 0..<subdivisionsCirclePrev:
       let index = xIndex * subdivisionsCircle * 6 + circleIndex * 6
       indices[index]     = xIndex * subdivisionsCircle + circleIndex
-      indices[index + 1] = indices[index] + 1
-      indices[index + 2] = (xIndex + 1) * subdivisionsCircle + circleIndex
+      indices[index + 1] = (xIndex + 1) * subdivisionsCircle + circleIndex
+      indices[index + 2] = indices[index] + 1
       indices[index + 3] = indices[index + 2]
       indices[index + 4] = indices[index + 1]
-      indices[index + 5] = indices[index + 2] + 1
+      indices[index + 5] = indices[index + 1] + 1
 
     let index = xIndex * subdivisionsCircle * 6 + subdivisionsCirclePrev * 6
-    indices[index + 1] = xIndex * subdivisionsCircle
-    indices[index]     = indices[index + 1] + subdivisionsCirclePrev
+    indices[index + 2] = xIndex * subdivisionsCircle
+    indices[index]     = indices[index + 2] + subdivisionsCirclePrev
     indices[index + 5] = (xIndex + 1) * subdivisionsCircle
-    indices[index + 2] = indices[index + 5] + subdivisionsCirclePrev
+    indices[index + 1] = indices[index + 5] + subdivisionsCirclePrev
     indices[index + 3] = indices[index + 2]
     indices[index + 4] = indices[index + 1]
 
