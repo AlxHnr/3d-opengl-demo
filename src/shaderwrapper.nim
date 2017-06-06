@@ -31,7 +31,7 @@ proc updateUniforms(shader: var ShaderWrapper) =
 proc ignore(uniforms: UniformLocations) = discard uniforms
 proc loadShaderWrapper*(vertex, fragment: openArray[string],
                         uniformProc: UniformProc = ignore):
-                          ShaderWrapper =
+                        ShaderWrapper =
   result.reloadableShader = initReloadableShader(vertex, fragment)
   result.uniformProc = uniformProc
   result.updateUniforms()
