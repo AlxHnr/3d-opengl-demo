@@ -108,8 +108,8 @@ proc main(): bool =
       U.color.updateWith(vector3d(0.51, 0.7, 0.27))
 
   var flatMeshShader =
-    loadShaderWrapper(["shader/height.vert", "shader/flatmesh.vert"],
-                      ["shader/height.vert", "shader/reflective.frag"],
+    loadShaderWrapper(["shader/flatmesh.vert"],
+                      ["shader/reflective.frag"],
                       flatMeshShaderUpdate)
   defer: flatMeshShader.destroy()
 

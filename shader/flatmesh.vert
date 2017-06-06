@@ -7,6 +7,11 @@ uniform vec3 lightPosition;
 
 out vec3 viewCoord, lightViewPosition, normal;
 
+vec3 getHeightVec(float x, float z)
+{
+  return vec3(x, sin(x * 15) * sin(z * 15)/30.0, z);
+}
+
 void main(void)
 {
   vec3 a = getHeightVec(position.x, position.z);
