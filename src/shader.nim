@@ -1,9 +1,8 @@
-import shaderutils, shaderprogramproc, onfailure
+import shaderutils, onfailure
 export destroy
 
 proc initShader*(vertexSourcePaths: openArray[string],
-                 fragmentSourcePaths: openArray[string],
-                 onShaderReload: ShaderProgramProc = ignoreArgs):
+                 fragmentSourcePaths: openArray[string]):
                  ShaderProgram =
   let vertexShaderObject = initVertexShaderObject(vertexSourcePaths)
   defer: vertexShaderObject.destroy()
@@ -11,6 +10,4 @@ proc initShader*(vertexSourcePaths: openArray[string],
   let fragmentShaderObject = initfragmentShaderObject(fragmentSourcePaths)
   defer: fragmentShaderObject.destroy()
 
-  result = linkShaderProgram(vertexShaderObject, fragmentShaderObject)
-  onFailure destroy result:
-    onShaderReload(result)
+  linkShaderProgram(vertexShaderObject, fragmentShaderObject)

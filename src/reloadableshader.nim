@@ -1,4 +1,4 @@
-import os, sequtils, times, shaderutils, shaderprogramproc, onfailure
+import os, sequtils, times, shaderutils, onfailure
 
 type
   SourcePathInfo = tuple
@@ -19,8 +19,7 @@ proc init(infoSeq: var SourcePathInfoSeq, paths: openArray[string]) =
     infoSeq[i].time = path.getLastModificationTime()
 
 proc initReloadableShader*(vertexSourcePaths: openArray[string],
-                           fragmentSourcePaths: openArray[string],
-                           onShaderReload: ShaderProgramProc = ignoreArgs):
+                           fragmentSourcePaths: openArray[string]):
                            ReloadableShader =
   result.vertexShaderObject = initVertexShaderObject(vertexSourcePaths)
 
@@ -33,9 +32,6 @@ proc initReloadableShader*(vertexSourcePaths: openArray[string],
       result.fragmentSourcePathInfos.init(fragmentSourcePaths)
       result.program = linkShaderProgram(result.vertexShaderObject,
                                          result.fragmentShaderObject)
-
-      onFailure destroy result.program:
-        onShaderReload(result.program)
 
 proc destroy*(shader: ReloadableShader) =
   shader.vertexShaderObject.destroy()
@@ -52,9 +48,7 @@ proc updateChangeTime(infoSeq: var SourcePathInfoSeq): bool =
 proc gatherSources(infoSeq: SourcePathInfoSeq): seq[string] =
   infoSeq.map do (info: SourcePathInfo) -> string: info.path
 
-proc tryReload*(shader: var ReloadableShader,
-                onShaderReload: ShaderProgramProc = ignoreArgs):
-                bool {.discardable.} =
+proc tryReload*(shader: var ReloadableShader): bool {.discardable.} =
   let
     vertexHasChanged = shader.vertexSourcePathInfos.updateChangeTime()
     fragmentHasChanged = shader.fragmentSourcePathInfos.updateChangeTime()
@@ -72,9 +66,6 @@ proc tryReload*(shader: var ReloadableShader,
       let newProgram = linkShaderProgram(shader.vertexShaderObject,
                                          shader.fragmentShaderObject)
 
-      onFailure destroy newProgram:
-        onShaderReload(newProgram)
-
       shader.program.destroy()
       shader.program = newProgram
       result = true
@@ -83,3 +74,6 @@ proc tryReload*(shader: var ReloadableShader,
 
 template declareUseBodyWithShader*(shader: ReloadableShader, body: typed) =
   use shader.program: body
+
+proc program*(shader: ReloadableShader): ShaderProgram =
+  shader.program
