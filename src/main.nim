@@ -137,6 +137,11 @@ proc main(): bool =
                                       curveShaderUpdate)
   defer: curveShader.destroy()
 
+  var bezierShader = loadShaderWrapper(["shader/bezier.vert"],
+                                       ["shader/reflective.frag"],
+                                       curveShaderUpdate)
+  defer: bezierShader.destroy()
+
   # Main loop.
   var
     running = true
@@ -222,6 +227,7 @@ proc main(): bool =
     if shaderReloadCounter == 40:
       shaderReloadCounter = 0
       flatMeshShader.tryReload()
+      bezierShader.tryReload()
       curveShader.tryReload()
     else:
       shaderReloadCounter += 1
@@ -235,7 +241,7 @@ proc main(): bool =
       U.normalMatrix.updateWith(flatMeshNormalMatrix)
       flatMesh.draw()
 
-    use curveShader:
+    use bezierShader:
       U.view.updateWith(lookAtMatrix)
       U.lightPosition.updateWith(sunPosition)
       U.normalMatrix.updateWith(cylinderNormalMatrix)
