@@ -161,13 +161,13 @@ proc main(): bool =
                                        curveShaderUpdate)
   defer: bezierShader.destroy()
 
-  var controllPointColor = vector3d(0.4, 0.7, 1.0)
+  var controllPointColor = vector3d(225.0, 65.0, 105.0)/255
   var bezierPoints =
     [
-      (point3d(-0.7, -0.8, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d(-1.0, -1.0, 0.0) & cylinderModelMatrix).toVector3d,
       (point3d(-1.0,  1.0, 0.0) & cylinderModelMatrix).toVector3d,
-      (point3d( 0.6,  0.6, 0.0) & cylinderModelMatrix).toVector3d,
-      (point3d( 0.8, -0.5, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 1.0,  1.0, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 1.0, -1.0, 0.0) & cylinderModelMatrix).toVector3d,
     ]
   var draggedBezierIndex = 0
 
