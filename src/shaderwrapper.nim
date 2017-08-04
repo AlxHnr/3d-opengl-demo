@@ -6,6 +6,7 @@ type
   UniformLocations* = object
     model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor, color: UniformLocationVec3
+    bezierPoints: UniformLocationMat4
   UniformProc = proc(uniforms: UniformLocations)
   ShaderWrapper* = object
     reloadableShader: ReloadableShader
@@ -21,6 +22,7 @@ proc updateUniforms(shader: var ShaderWrapper) =
   shader.uniforms.lightPosition = program.getUniformLocationVec3("lightPosition")
   shader.uniforms.lightColor = program.getUniformLocationVec3("lightColor")
   shader.uniforms.color = program.getUniformLocationVec3("color")
+  shader.uniforms.bezierPoints = program.getUniformLocationMat4("bezierPoints")
 
   var previousProgram: GLint
   glGetIntegerv(GL_CURRENT_PROGRAM, previousProgram.addr)
@@ -57,3 +59,4 @@ proc normalMatrix*(u: UniformLocations): auto = u.normalMatrix
 proc lightPosition*(u: UniformLocations): auto = u.lightPosition
 proc lightColor*(u: UniformLocations): auto = u.lightColor
 proc color*(u: UniformLocations): auto = u.color
+proc bezierPoints*(u: UniformLocations): auto = u.bezierPoints

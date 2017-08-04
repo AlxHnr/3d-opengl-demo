@@ -4,7 +4,7 @@ import
   globject, mathhelpers, camera, primitivegenerator,
   shader, shaderwrapper, uniform, use
 
-type MouseMode = enum mmNone, mmCamera, mmDrag
+type MouseMode = enum mmNone, mmCamera, mmDragSun, mmDragBezier
 
 const
   windowW = 1024
@@ -47,6 +47,24 @@ proc moveToMousePos(obj: var Vector3d;
     projection = dot(ray, distance)/dot(ray, ray) * ray
   obj = camera.position + projection
 
+proc toPoint3d(v: Vector3d): Point3d = point3d(v.x, v.y, v.z)
+proc toVector3d(p: Point3d): Vector3d = vector3d(p.x, p.y, p.z)
+
+proc invertControlPoints(points: array[4, Vector3d],
+                         inverseMatrix: Matrix3d): Matrix3d =
+  let inverted =
+    [
+      points[0].toPoint3d & inverseMatrix,
+      points[1].toPoint3d & inverseMatrix,
+      points[2].toPoint3d & inverseMatrix,
+      points[3].toPoint3d & inverseMatrix,
+    ]
+  matrix3d(
+    inverted[0].x, inverted[0].y, 0.0, 0.0,
+    inverted[1].x, inverted[1].y, 0.0, 0.0,
+    inverted[2].x, inverted[2].y, 0.0, 0.0,
+    inverted[3].x, inverted[3].y, 0.0, 0.0)
+
 template sdlAssert(condition: bool) =
   if not condition:
     stderr.write("failed to initialize libSDL: " & $sdl2.getError() & "\n")
@@ -88,9 +106,9 @@ proc main(): bool =
   let cylinderMesh = initCylinder(100, 0.02)
   defer: cylinderMesh.destroy()
 
-  let sun = initCircle(18)
-  defer: sun.destroy()
-  var sunPosition = vector3d(1.0, 90.0, 1.0)
+  let circle = initCircle(18)
+  defer: circle.destroy()
+  var sunPosition = vector3d(0.0, 0.0, 0.0)
 
   # Setup transformation matrices.
   var
@@ -126,6 +144,7 @@ proc main(): bool =
 
   let
     cylinderModelMatrix = scale(50.0) & move(20.0, 65.0, 0.0)
+    inverseCylinderModelMatrix = cylinderModelMatrix.inverse
     curveShaderUpdate = proc(U: UniformLocations) =
       U.model.updateWith(cylinderModelMatrix)
       U.projection.updateWith(projectionMatrix)
@@ -141,6 +160,16 @@ proc main(): bool =
                                        ["shader/reflective.frag"],
                                        curveShaderUpdate)
   defer: bezierShader.destroy()
+
+  var controllPointColor = vector3d(0.4, 0.7, 1.0)
+  var bezierPoints =
+    [
+      (point3d(-0.7, -0.8, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d(-1.0,  1.0, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 0.6,  0.6, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 0.8, -0.5, 0.0) & cylinderModelMatrix).toVector3d,
+    ]
+  var draggedBezierIndex = 0
 
   # Main loop.
   var
@@ -166,7 +195,13 @@ proc main(): bool =
                       inverseProjectionMatrix,
                       camera.getLookAtMatrix().inverse)
             if collidesWithRay(camera.position, ray, sunPosition):
-              mouseMode = mmDrag
+              mouseMode = mmDragSun
+            else:
+              for i, point in bezierPoints:
+                if collidesWithRay(camera.position, ray, point):
+                  draggedBezierIndex = i
+                  mouseMode = mmDragBezier
+                  break
           else: discard
       elif event.kind == MouseButtonUp and
            (event.button.button == sdl2.BUTTON_LEFT or
@@ -177,10 +212,15 @@ proc main(): bool =
           of mmCamera:
             camera.yawPitch(event.motion.xrel.float/200.0,
                             event.motion.yrel.float/200.0)
-          of mmDrag:
+          of mmDragSun:
             sunPosition.moveToMousePos(camera, event.motion.x, event.motion.y,
                                        inverseProjectionMatrix,
                                        camera.getLookAtMatrix().inverse)
+          of mmDragBezier:
+            bezierPoints[draggedBezierIndex]
+            .moveToMousePos(camera, event.motion.x, event.motion.y,
+                            inverseProjectionMatrix,
+                            camera.getLookAtMatrix().inverse)
           of mmNone: discard
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
@@ -245,13 +285,21 @@ proc main(): bool =
       U.view.updateWith(lookAtMatrix)
       U.lightPosition.updateWith(sunPosition)
       U.normalMatrix.updateWith(cylinderNormalMatrix)
+      U.bezierPoints.updateWith(
+        bezierPoints.invertControlPoints(inverseCylinderModelMatrix))
       cylinderMesh.draw()
 
     use sunShader:
       let sunMatrix = clearScaleRotation(sunPosition.move & lookAtMatrix)
       sunShaderModelView.updateWith(sunMatrix)
       sunShaderColor.updateWith(sunColor)
-      sun.draw()
+      circle.draw()
+
+      sunShaderColor.updateWith(controllPointColor)
+      for point in bezierPoints:
+        let pointMatrix = clearScaleRotation(point.move & lookAtMatrix)
+        sunShaderModelView.updateWith(pointMatrix)
+        circle.draw()
 
     glSwapWindow(window)
 
