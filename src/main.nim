@@ -2,9 +2,10 @@ import
   math, basic3d,
   sdl2, opengl,
   globject, mathhelpers, camera, primitivegenerator,
-  shader, shaderwrapper, uniform, use
+  shader, shaderwrapper, uniform, use, spline
 
-type MouseMode = enum mmNone, mmCamera, mmDragSun, mmDragBezier
+type MouseMode = enum
+  mmNone, mmCamera, mmDragSun, mmDragBezier, mmDragSpline
 
 const
   windowW = 1024
@@ -50,20 +51,33 @@ proc moveToMousePos(obj: var Vector3d;
 proc toPoint3d(v: Vector3d): Point3d = point3d(v.x, v.y, v.z)
 proc toVector3d(p: Point3d): Vector3d = vector3d(p.x, p.y, p.z)
 
+proc invertVec3dArray(points: array[4, Vector3d], inverseMatrix: Matrix3d):
+                      array[4, Point3d] =
+  [
+    points[0].toPoint3d & inverseMatrix,
+    points[1].toPoint3d & inverseMatrix,
+    points[2].toPoint3d & inverseMatrix,
+    points[3].toPoint3d & inverseMatrix,
+  ]
+
 proc invertControlPoints(points: array[4, Vector3d],
                          inverseMatrix: Matrix3d): Matrix3d =
-  let inverted =
-    [
-      points[0].toPoint3d & inverseMatrix,
-      points[1].toPoint3d & inverseMatrix,
-      points[2].toPoint3d & inverseMatrix,
-      points[3].toPoint3d & inverseMatrix,
-    ]
+  let inverted = points.invertVec3dArray(inverseMatrix)
   matrix3d(
     inverted[0].x, inverted[0].y, 0.0, 0.0,
     inverted[1].x, inverted[1].y, 0.0, 0.0,
     inverted[2].x, inverted[2].y, 0.0, 0.0,
     inverted[3].x, inverted[3].y, 0.0, 0.0)
+
+proc controlPointsToSpline(points: array[4, Vector3d],
+                           inverseMatrix: Matrix3d): Spline =
+  let inverted = points.invertVec3dArray(inverseMatrix)
+  newSpline([
+      vector3d(inverted[0].x, inverted[0].y, 0.0),
+      vector3d(inverted[1].x, inverted[1].y, 0.0),
+      vector3d(inverted[2].x, inverted[2].y, 0.0),
+      vector3d(inverted[3].x, inverted[3].y, 0.0)
+    ])
 
 template sdlAssert(condition: bool) =
   if not condition:
@@ -95,7 +109,7 @@ proc main(): bool =
   loadExtensions()
 
   glViewport(0, 0, windowW, windowH)
-  glClearColor(0.6, 0.65, 0.7, 0)
+  glClearColor(1.0, 1.0, 1.0, 0)
   glEnable(GL_DEPTH_TEST)
   glEnable(GL_MULTISAMPLE)
 
@@ -108,7 +122,7 @@ proc main(): bool =
 
   let circle = initCircle(18)
   defer: circle.destroy()
-  var sunPosition = vector3d(0.0, 0.0, 0.0)
+  var sunPosition = vector3d(0.0, 90.0, -90.0)
 
   # Setup transformation matrices.
   var
@@ -123,7 +137,7 @@ proc main(): bool =
       U.model.updateWith(flatMeshModelMatrix)
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-      U.color.updateWith(vector3d(0.51, 0.7, 0.27))
+      U.color.updateWith(vector3d(0.6, 0.6, 0.6))
 
   var flatMeshShader =
     loadShaderWrapper(["shader/flatmesh.vert"],
@@ -149,7 +163,7 @@ proc main(): bool =
       U.model.updateWith(cylinderModelMatrix)
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(sunColor)
-      U.color.updateWith(vector3d(0.8, 1/3, 1/3))
+      U.color.updateWith(vector3d(1/3, 1/3, 0.8))
 
   var curveShader = loadShaderWrapper(["shader/curve.vert"],
                                       ["shader/reflective.frag"],
@@ -169,7 +183,23 @@ proc main(): bool =
       (point3d( 1.0,  1.0, 0.0) & cylinderModelMatrix).toVector3d,
       (point3d( 1.0, -1.0, 0.0) & cylinderModelMatrix).toVector3d,
     ]
-  var draggedBezierIndex = 0
+
+  var splineShader = loadShaderWrapper(["shader/spline.vert"],
+                                       ["shader/reflective.frag"],
+                                       curveShaderUpdate)
+  defer: splineShader.destroy()
+
+  var splinePoints =
+    [
+      (point3d(-1.0, -1.0, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d(-0.5,  0.5, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 0.2, -0.5, 0.0) & cylinderModelMatrix).toVector3d,
+      (point3d( 1.0,  1.0, 0.0) & cylinderModelMatrix).toVector3d,
+    ]
+  var dummySpline =
+    splinePoints.controlPointsToSpline(inverseCylinderModelMatrix)
+
+  var draggedSphereIndex = 0
 
   # Main loop.
   var
@@ -199,8 +229,13 @@ proc main(): bool =
             else:
               for i, point in bezierPoints:
                 if collidesWithRay(camera.position, ray, point):
-                  draggedBezierIndex = i
+                  draggedSphereIndex = i
                   mouseMode = mmDragBezier
+                  break
+              for i, point in splinePoints:
+                if collidesWithRay(camera.position, ray, point):
+                  draggedSphereIndex = i
+                  mouseMode = mmDragSpline
                   break
           else: discard
       elif event.kind == MouseButtonUp and
@@ -217,15 +252,20 @@ proc main(): bool =
                                        inverseProjectionMatrix,
                                        camera.getLookAtMatrix().inverse)
           of mmDragBezier:
-            bezierPoints[draggedBezierIndex]
+            bezierPoints[draggedSphereIndex]
             .moveToMousePos(camera, event.motion.x, event.motion.y,
                             inverseProjectionMatrix,
                             camera.getLookAtMatrix().inverse)
+          of mmDragSpline:
+            splinePoints[draggedSphereIndex]
+            .moveToMousePos(camera, event.motion.x, event.motion.y,
+                            inverseProjectionMatrix,
+                            camera.getLookAtMatrix().inverse)
+            dummySpline =
+              splinePoints.controlPointsToSpline(inverseCylinderModelMatrix)
           of mmNone: discard
       elif event.kind == KeyDown:
         case event.key.keysym.sym:
-          of K_ESCAPE:
-            running = false
           of K_g:
             if wireframe:
               glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
@@ -268,6 +308,7 @@ proc main(): bool =
       shaderReloadCounter = 0
       flatMeshShader.tryReload()
       bezierShader.tryReload()
+      splineShader.tryReload()
       curveShader.tryReload()
     else:
       shaderReloadCounter += 1
@@ -275,18 +316,25 @@ proc main(): bool =
     # Render.
     glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-    use flatMeshShader:
-      U.view.updateWith(lookAtMatrix)
-      U.lightPosition.updateWith(sunPosition)
-      U.normalMatrix.updateWith(flatMeshNormalMatrix)
-      flatMesh.draw()
+#     use flatMeshShader:
+#       U.view.updateWith(lookAtMatrix)
+#       U.lightPosition.updateWith(sunPosition)
+#       U.normalMatrix.updateWith(flatMeshNormalMatrix)
+#       flatMesh.draw()
 
-    use bezierShader:
+#     use bezierShader:
+#       U.view.updateWith(lookAtMatrix)
+#       U.lightPosition.updateWith(sunPosition)
+#       U.normalMatrix.updateWith(cylinderNormalMatrix)
+#       U.bezierPoints.updateWith(
+#         bezierPoints.invertControlPoints(inverseCylinderModelMatrix))
+#       cylinderMesh.draw()
+
+    use splineShader:
       U.view.updateWith(lookAtMatrix)
       U.lightPosition.updateWith(sunPosition)
       U.normalMatrix.updateWith(cylinderNormalMatrix)
-      U.bezierPoints.updateWith(
-        bezierPoints.invertControlPoints(inverseCylinderModelMatrix))
+      U.updateSplineLocations(dummySpline)
       cylinderMesh.draw()
 
     use sunShader:
@@ -296,7 +344,7 @@ proc main(): bool =
       circle.draw()
 
       sunShaderColor.updateWith(controllPointColor)
-      for point in bezierPoints:
+      for point in splinePoints:
         let pointMatrix = clearScaleRotation(point.move & lookAtMatrix)
         sunShaderModelView.updateWith(pointMatrix)
         circle.draw()

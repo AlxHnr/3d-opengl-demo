@@ -7,9 +7,7 @@ type
     model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor, color: UniformLocationVec3
     bezierPoints: UniformLocationMat4
-    SplineData: UniformLocationMat4
-    SplineDataX1: UniformLocationVec3
-    SplineDataX2: UniformLocationVec3
+    splineData: UniformLocationMat4
   UniformProc = proc(uniforms: UniformLocations)
   ShaderWrapper* = object
     reloadableShader: ReloadableShader
@@ -27,8 +25,6 @@ proc updateUniforms(shader: var ShaderWrapper) =
   shader.uniforms.color = program.getUniformLocationVec3("color")
   shader.uniforms.bezierPoints = program.getUniformLocationMat4("bezierPoints")
   shader.uniforms.splineData = program.getUniformLocationMat4("splineData")
-  shader.uniforms.splineDataX1 = program.getUniformLocationVec3("splineDataX1")
-  shader.uniforms.splineDataX2 = program.getUniformLocationVec3("splineDataX2")
 
   var previousProgram: GLint
   glGetIntegerv(GL_CURRENT_PROGRAM, previousProgram.addr)
@@ -66,6 +62,4 @@ proc lightPosition*(u: UniformLocations): auto = u.lightPosition
 proc lightColor*(u: UniformLocations): auto = u.lightColor
 proc color*(u: UniformLocations): auto = u.color
 proc bezierPoints*(u: UniformLocations): auto = u.bezierPoints
-proc SplineData*(u: UniformLocations): auto = u.SplineData
-proc SplineDataX1*(u: UniformLocations): auto = u.SplineDataX1
-proc SplineDataX2*(u: UniformLocations): auto = u.SplineDataX2
+proc splineData*(u: UniformLocations): auto = u.splineData
