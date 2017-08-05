@@ -2,7 +2,7 @@ import math, basic3d
 
 type
   SplineValues = tuple[a, b, c, d: float]
-  SplineHelperValues = tuple[b, d, h, alpha, c, ll, mu, z: float]
+  SplineHelperValues = tuple[alpha, b, c, d, h, ll, mu, z: float]
   Spline = object
     x_values: seq[float]
     values: seq[SplineValues]
