@@ -1,4 +1,4 @@
-import math, basic3d
+import math, basic3d, uniform, shaderwrapper
 
 type
   SplineValues = tuple[a, b, c, d: float]
@@ -55,3 +55,17 @@ proc newSpline*(points: openArray[Vector3d]): Spline =
     result.values[i].b = helpers[i].b
     result.values[i].c = helpers[i].c
     result.values[i].d = helpers[i].d
+
+proc updateSplineLocations*(U: UniformLocations, spline: Spline) =
+  assert(spline.values.len == 4)
+  assert(spline.x_values.len == 5)
+
+  U.SplineData.updateWith(matrix3d(
+    spline.values[0].a, spline.values[0].b, spline.values[0].c, spline.values[0].d,
+    spline.values[1].a, spline.values[1].b, spline.values[1].c, spline.values[1].d,
+    spline.values[2].a, spline.values[2].b, spline.values[2].c, spline.values[2].d,
+    spline.values[3].a, spline.values[3].b, spline.values[3].c, spline.values[3].d))
+  U.SplineDataX1.updateWith(vector3d(
+    spline.x_values[0], spline.x_values[1], spline.x_values[2]))
+  U.SplineDataX2.updateWith(vector3d(
+    spline.x_values[3], spline.x_values[4], 0.0))

@@ -7,6 +7,9 @@ type
     model, view, projection, normalMatrix: UniformLocationMat4
     lightPosition, lightColor, color: UniformLocationVec3
     bezierPoints: UniformLocationMat4
+    SplineData: UniformLocationMat4
+    SplineDataX1: UniformLocationVec3
+    SplineDataX2: UniformLocationVec3
   UniformProc = proc(uniforms: UniformLocations)
   ShaderWrapper* = object
     reloadableShader: ReloadableShader
@@ -60,3 +63,6 @@ proc lightPosition*(u: UniformLocations): auto = u.lightPosition
 proc lightColor*(u: UniformLocations): auto = u.lightColor
 proc color*(u: UniformLocations): auto = u.color
 proc bezierPoints*(u: UniformLocations): auto = u.bezierPoints
+proc SplineData*(u: UniformLocations): auto = u.SplineData
+proc SplineDataX1*(u: UniformLocations): auto = u.SplineDataX1
+proc SplineDataX2*(u: UniformLocations): auto = u.SplineDataX2
