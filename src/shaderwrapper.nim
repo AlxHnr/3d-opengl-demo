@@ -26,6 +26,9 @@ proc updateUniforms(shader: var ShaderWrapper) =
   shader.uniforms.lightColor = program.getUniformLocationVec3("lightColor")
   shader.uniforms.color = program.getUniformLocationVec3("color")
   shader.uniforms.bezierPoints = program.getUniformLocationMat4("bezierPoints")
+  shader.uniforms.splineData = program.getUniformLocationMat4("splineData")
+  shader.uniforms.splineDataX1 = program.getUniformLocationVec3("splineDataX1")
+  shader.uniforms.splineDataX2 = program.getUniformLocationVec3("splineDataX2")
 
   var previousProgram: GLint
   glGetIntegerv(GL_CURRENT_PROGRAM, previousProgram.addr)
