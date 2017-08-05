@@ -11,7 +11,17 @@ out vec3 viewCoord, lightViewPosition, normal;
 
 void main(void)
 {
-  float slope = 0.0;
+  int i = 0;
+  if(position.x > splineData[3][2]) i = 2;
+  else if(position.x > splineData[3][1]) i = 1;
+  float xi = position.x - splineData[3][i];
+  float xi2 = xi * xi;
+
+  float slope =
+    splineData[i][3] * 3.0 * xi2 +
+    splineData[i][2] * 2.0 * xi +
+    splineData[i][1];
+
   vec2 tangentHorizontal = normalize(vec2(-1.0, slope));
 
   float cosHorizontal = tangentHorizontal.x;
@@ -23,27 +33,12 @@ void main(void)
   vec3 rotatedPosition = horizontalRotation * vec3(0.0, position.y, position.z);
   normal = -normalize(rotatedPosition);
 
-  int spline_index;
-  float xi;
-
-  if(position.x > splineData[2][1])
-  {
-    spline_index = 1;
-    xi = position.x - splineData[2][1];
-  }
-  else
-  {
-    spline_index = 0;
-    xi = position.x - splineData[2][0];
-  }
-  xi = position.x;
-
   rotatedPosition.x += position.x;
   rotatedPosition.y +=
-    splineData[spline_index][0] * xi * xi * xi +
-    splineData[spline_index][1] * xi * xi +
-    splineData[spline_index][2] * xi +
-    splineData[spline_index][3];
+    splineData[i][3] * xi2 * xi +
+    splineData[i][2] * xi2 +
+    splineData[i][1] * xi +
+    splineData[i][0];
 
   vec4 positionView = view * model * vec4(rotatedPosition, 1.0);
 
