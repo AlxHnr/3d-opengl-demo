@@ -44,13 +44,12 @@ proc newSpline*(points: openArray[Vector3d]): Spline =
   helpers[points.len - 2].c  = 0
   helpers[points.len - 2].z  = 0
 
-  for i in points.len - 2 .. 1:
-    let j = i - 1
-    helpers[j].c = helpers[j].z - helpers[j].mu * helpers[j + 1].c
-    helpers[j].b =
-      (result.values[j + 1].a - result.values[j].a)/helpers[j].h -
-      helpers[j].h * (helpers[j + 1].c + 2 * helpers[j].c)/3
-    helpers[j].d = (helpers[j + 1].c - helpers[j].c)/(3 * helpers[j].h)
+  for i in points.len - 3 .. 0:
+    helpers[i].c = helpers[i].z - helpers[i].mu * helpers[i + 1].c
+    helpers[i].b =
+      (result.values[i + 1].a - result.values[i].a)/helpers[i].h -
+      helpers[i].h * (helpers[i + 1].c + 2 * helpers[i].c)/3
+    helpers[i].d = (helpers[i + 1].c - helpers[i].c)/(3 * helpers[i].h)
 
   for i in 0..<points.len - 2:
     result.values[i].b = helpers[i].b
