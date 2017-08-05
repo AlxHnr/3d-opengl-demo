@@ -64,5 +64,5 @@ proc updateSplineLocations*(U: UniformLocations, spline: Spline) =
   U.splineData.updateWith(matrix3d(
     spline.values[0].a, spline.values[0].b, spline.values[0].c, spline.values[0].d,
     spline.values[1].a, spline.values[1].b, spline.values[1].c, spline.values[1].d,
-    spline.x_values[0], spline.x_values[1], 0.0,                0.0,
+    spline.x_values[0], spline.x_values[1], spline.x_values[2], spline.x_values[3],
     0.0,                0.0,                0.0,                0.0))
