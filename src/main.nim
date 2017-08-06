@@ -1,5 +1,5 @@
 import
-  math, basic3d,
+  algorithm, math, basic3d,
   sdl2, opengl,
   globject, mathhelpers, camera, primitivegenerator,
   shader, shaderwrapper, uniform, use, spline
@@ -71,7 +71,12 @@ proc invertControlPoints(points: array[4, Vector3d],
 
 proc controlPointsToSpline(points: array[4, Vector3d],
                            inverseMatrix: Matrix3d): Spline =
-  let inverted = points.invertVec3dArray(inverseMatrix)
+  var inverted = points
+    .invertVec3dArray(inverseMatrix)
+  inverted.sort do(a: Point3d, b: Point3d) -> int:
+    if a.x < b.x: -1
+    elif a.x > b.x: 1
+    else: 0
   newSpline([
       vector3d(inverted[0].x, inverted[0].y, 0.0),
       vector3d(inverted[1].x, inverted[1].y, 0.0),
@@ -261,6 +266,7 @@ proc main(): bool =
             .moveToMousePos(camera, event.motion.x, event.motion.y,
                             inverseProjectionMatrix,
                             camera.getLookAtMatrix().inverse)
+            splinePoints[draggedSphereIndex].z = 0.0
             dummySpline =
               splinePoints.controlPointsToSpline(inverseCylinderModelMatrix)
           of mmNone: discard
@@ -337,6 +343,7 @@ proc main(): bool =
       U.updateSplineLocations(dummySpline)
       cylinderMesh.draw()
 
+    glDisable(GL_DEPTH_TEST)
     use sunShader:
       let sunMatrix = clearScaleRotation(sunPosition.move & lookAtMatrix)
       sunShaderModelView.updateWith(sunMatrix)
@@ -348,6 +355,7 @@ proc main(): bool =
         let pointMatrix = clearScaleRotation(point.move & lookAtMatrix)
         sunShaderModelView.updateWith(pointMatrix)
         circle.draw()
+    glEnable(GL_DEPTH_TEST)
 
     glSwapWindow(window)
 
