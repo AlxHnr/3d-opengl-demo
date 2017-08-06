@@ -261,6 +261,7 @@ proc main(): bool =
             .moveToMousePos(camera, event.motion.x, event.motion.y,
                             inverseProjectionMatrix,
                             camera.getLookAtMatrix().inverse)
+            bezierPoints[draggedSphereIndex].z = 0.0
           of mmDragSpline:
             splinePoints[draggedSphereIndex]
             .moveToMousePos(camera, event.motion.x, event.motion.y,
