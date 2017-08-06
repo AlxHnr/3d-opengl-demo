@@ -71,8 +71,7 @@ proc invertControlPoints(points: array[4, Vector3d],
 
 proc controlPointsToSpline(points: array[4, Vector3d],
                            inverseMatrix: Matrix3d): Spline =
-  var inverted = points
-    .invertVec3dArray(inverseMatrix)
+  var inverted = points.invertVec3dArray(inverseMatrix)
   inverted.sort do(a: Point3d, b: Point3d) -> int:
     if a.x < b.x: -1
     elif a.x > b.x: 1
