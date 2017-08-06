@@ -113,7 +113,7 @@ proc main(): bool =
   loadExtensions()
 
   glViewport(0, 0, windowW, windowH)
-  glClearColor(1.0, 1.0, 1.0, 0)
+  glClearColor(0.6, 0.65, 0.7, 0)
   glEnable(GL_DEPTH_TEST)
   glEnable(GL_MULTISAMPLE)
 
@@ -141,7 +141,7 @@ proc main(): bool =
       U.model.updateWith(flatMeshModelMatrix)
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(vector3d(1.0, 1.0, 1.0))
-      U.color.updateWith(vector3d(0.6, 0.6, 0.6))
+      U.color.updateWith(vector3d(0.51, 0.7, 0.27))
 
   var flatMeshShader =
     loadShaderWrapper(["shader/flatmesh.vert"],
@@ -169,7 +169,6 @@ proc main(): bool =
     curveShaderUpdate = proc(U: UniformLocations) =
       U.projection.updateWith(projectionMatrix)
       U.lightColor.updateWith(sunColor)
-      U.color.updateWith(vector3d(1/3, 1/3, 0.8))
 
   var curveShader = loadShaderWrapper(["shader/curve.vert"],
                                       ["shader/reflective.frag"],
@@ -177,6 +176,7 @@ proc main(): bool =
   defer: curveShader.destroy()
   use curveShader:
     U.model.updateWith(x3ModelMatrix)
+    U.color.updateWith(vector3d(0.8, 1/3, 1/3))
 
   var bezierShader = loadShaderWrapper(["shader/bezier.vert"],
                                        ["shader/reflective.frag"],
@@ -184,6 +184,7 @@ proc main(): bool =
   defer: bezierShader.destroy()
   use bezierShader:
     U.model.updateWith(bezierModelMatrix)
+    U.color.updateWith(vector3d(1/3, 1/3, 0.8))
 
   var controllPointColor = vector3d(225.0, 65.0, 105.0)/255
   var bezierPoints =
@@ -200,6 +201,7 @@ proc main(): bool =
   defer: splineShader.destroy()
   use splineShader:
     U.model.updateWith(splineModelMatrix)
+    U.color.updateWith(vector3d(218, 165, 32)/255.0)
 
   var splinePoints =
     [
